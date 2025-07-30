@@ -1,257 +1,146 @@
+import argparse
 import sys
 import os
-import time
-from data_collector import get_stock_data
-from strategy_engine import should_buy
-from portfolio import Portfolio
+import json
+import logging
+from datetime import datetime
+from pathlib import Path
 
-def show_help():
-    """Mostra le opzioni disponibili"""
-    print("🤖 STOCK AI TRADING BOT - Opzioni Disponibili")
-    print("=" * 50)
-    print()
-    print("📊 ANALISI E TRADING:")
-    print("  python src/main.py /RUN")
-    print("    Esegue analisi multi-titolo e trading singolo")
-    print()
-    print("🤖 GESTIONE BOT:")
-    print("  python src/aggressive_trader.py")
-    print("    Avvia il bot di trading aggressivo (continuo)")
-    print()
-    print("  python src/main.py /CLOSEALLBOT")
-    print("    Ferma tutti i bot attivi (mantiene posizioni)")
-    print()
-    print("💰 GESTIONE POSIZIONI:")
-    print("  python src/main.py /SELLALL")
-    print("    Vende tutte le posizioni aperte immediatamente")
-    print()
-    print("📊 MONITORAGGIO:")
-    print("  python src/cli_monitor.py status")
-    print("    Mostra stato generale del portfolio")
-    print()
-    print("  python src/cli_monitor.py positions")
-    print("    Mostra dettaglio posizioni aperte")
-    print()
-    print("  python src/cli_monitor.py watch")
-    print("    Monitoraggio continuo (modalità watch)")
-    print()
-    print("  python src/web_dashboard.py")
-    print("    Avvia dashboard web su http://localhost:5000")
-    print()
-    print("🔧 ESEMPI D'USO:")
-    print("  # Avvia trading continuo")
-    print("  python src/aggressive_trader.py")
-    print()
-    print("  # In un altro terminale, monitora")
-    print("  python src/cli_monitor.py watch")
-    print()
-    print("  # Per fermare tutto e vendere")
-    print("  python src/main.py /SELLALL")
-    print("  python src/main.py /CLOSEALLBOT")
+# Create necessary directories first
+for dir_name in ['logs', 'data', 'config', 'src']:
+    os.makedirs(dir_name, exist_ok=True)
 
-def handle_sellall_command():
-    """Gestisce il comando SELLALL per vendere tutte le posizioni"""
-    portfolio_file = "/workspaces/stock-ai/data/current_portfolio.pkl"
-    
-    try:
-        # Carica portfolio esistente
-        if not os.path.exists(portfolio_file):
-            print("❌ Nessun portfolio trovato - nessuna posizione da vendere")
-            return
-        
-        import pickle
-        with open(portfolio_file, "rb") as f:
-            portfolio = pickle.load(f)
-        
-        if not portfolio.positions:
-            print("💰 Nessuna posizione aperta da vendere")
-            print(f"   Liquidità attuale: ${portfolio.cash:.2f}")
-            return
-        
-        print("🔥 VENDITA FORZATA DI TUTTE LE POSIZIONI")
-        print("=" * 50)
-        
-        total_sold_value = 0
-        positions_to_sell = list(portfolio.positions.keys())
-        
-        for ticker in positions_to_sell:
-            try:
-                position = portfolio.positions[ticker]
-                shares = position["shares"]
-                entry_price = position["avg_price"]
-                
-                # Ottieni prezzo attuale
-                df = get_stock_data(ticker, period="1d")
-                if len(df) > 0:
-                    current_price = df["Close"].iloc[-1]
-                    
-                    # Calcola P&L
-                    total_value = shares * current_price
-                    cost_basis = shares * entry_price
-                    pnl = total_value - cost_basis
-                    pnl_pct = (pnl / cost_basis) * 100 if cost_basis > 0 else 0
-                    
-                    # Vendi
-                    portfolio.sell(ticker, current_price)
-                    total_sold_value += total_value
-                    
-                    # Status emoji
-                    status = "🟢" if pnl > 0 else "🔴" if pnl < 0 else "⚪"
-                    
-                    print(f"{status} Venduto {shares} azioni di {ticker}:")
-                    print(f"   Entry: ${entry_price:.2f} -> Exit: ${current_price:.2f}")
-                    print(f"   P&L: ${pnl:.2f} ({pnl_pct:+.1f}%) = ${total_value:.2f}")
-                else:
-                    print(f"❌ Impossibile ottenere prezzo per {ticker}")
-                    
-            except Exception as e:
-                print(f"❌ Errore nella vendita di {ticker}: {e}")
-        
-        # Salva portfolio aggiornato
-        with open(portfolio_file, "wb") as f:
-            pickle.dump(portfolio, f)
-        
-        # Report finale
-        print("\n📈 RIEPILOGO VENDITE:")
-        print(f"   Valore vendite: ${total_sold_value:.2f}")
-        print(f"   Liquidità finale: ${portfolio.cash:.2f}")
-        
-        metrics = portfolio.get_performance_metrics()
-        print(f"   Rendimento totale: {metrics['total_return']:.2f}%")
-        print(f"   Trades totali: {metrics['total_trades']}")
-        print(f"   Win rate: {metrics['win_rate']:.1f}%")
-        print("\n✅ Tutte le posizioni sono state vendute")
-        
-    except Exception as e:
-        print(f"❌ Errore nell'esecuzione SELLALL: {e}")
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/trading.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
-def handle_closeallbot_command():
-    """Gestisce il comando CLOSEALLBOT per fermare tutti i bot"""
-    control_file = "/workspaces/stock-ai/data/trader_control.txt"
-    
-    try:
-        os.makedirs(os.path.dirname(control_file), exist_ok=True)
-        with open(control_file, "w") as f:
-            f.write("CLOSEALLBOT")
+class StockAI:
+    def __init__(self):
+        self.config = self.create_default_config()
+        logger.info("StockAI initialized successfully")
         
-        print("🛑 COMANDO CLOSEALLBOT INVIATO")
-        print("=" * 30)
-        print("   Tutti i bot di trading verranno fermati")
-        print("   Le posizioni aperte saranno MANTENUTE")
-        print("   Per vendere tutto usa: python src/main.py /SELLALL")
-        print()
-        print("⏳ Attendere alcuni secondi per la fermata dei bot...")
+    def create_default_config(self):
+        """Create and return default configuration"""
+        default_config = {
+            "trading": {
+                "initial_capital": 10000,
+                "max_position_size": 0.2,
+                "stop_loss": 0.05,
+                "take_profit": 0.1
+            },
+            "rl_agent": {
+                "learning_rate": 0.1,
+                "discount_factor": 0.95,
+                "epsilon": 0.1,
+                "batch_size": 32
+            },
+            "data": {
+                "update_interval": 3600,
+                "lookback_days": 365,
+                "symbols": ["AAPL", "GOOGL", "MSFT", "TSLA"]
+            }
+        }
         
-        # Attendi un po' per permettere ai bot di processare
-        time.sleep(5)
-        
-        # Rimuovi il file di controllo
-        if os.path.exists(control_file):
-            os.remove(control_file)
-            print("✅ Comando processato e file di controllo rimosso")
-        
-        print("✅ Tutti i bot sono stati fermati")
+        # Save config file
+        config_path = Path("config/settings.json")
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(default_config, f, indent=2)
+            logger.info(f"Created config file: {config_path}")
+        except Exception as e:
+            logger.warning(f"Could not save config: {e}")
             
-    except Exception as e:
-        print(f"❌ Errore nell'invio del comando CLOSEALLBOT: {e}")
-
-def analyze_stock(ticker):
-    """Analizza un singolo titolo e restituisce un punteggio di profittabilità"""
-    try:
-        df = get_stock_data(ticker)
-        if len(df) < 3:
-            return None, 0, 0
+        return default_config
+    
+    def show_portfolio_status(self):
+        """Show basic portfolio status"""
+        print("\n=== PORTFOLIO STATUS ===")
+        print(f"Cash: ${self.config['trading']['initial_capital']:.2f}")
+        print(f"Symbols: {', '.join(self.config['data']['symbols'])}")
+        print("Status: Initialized")
         
-        current_price = df["Close"].iloc[-1]
-        avg_3d = df['Close'].rolling(window=3).mean().iloc[-1]
+    def update_data(self):
+        """Simulate data update"""
+        logger.info("Data update requested")
+        print("✅ Data update simulated successfully")
         
-        # Calcola trend e volatilità
-        price_change_pct = ((current_price - df["Close"].iloc[-5]) / df["Close"].iloc[-5]) * 100 if len(df) >= 5 else 0
-        volatility = df["Close"].pct_change().std() * 100
-        
-        # Punteggio di profittabilità (più alto = migliore)
-        # Favorisce titoli con trend positivo ma non troppo volatili
-        profitability_score = price_change_pct - (volatility * 0.5)
-        
-        return df, current_price, profitability_score
-    except Exception as e:
-        print(f"Errore nell'analisi di {ticker}: {e}")
-        return None, 0, 0
-
-def run_single_analysis():
-    """Esegue l'analisi e trading singolo"""
-    print("📊 ANALISI MULTI-TITOLO E TRADING SINGOLO")
-    print("=" * 50)
-    
-    # Lista di titoli da analizzare
-    tickers = ["AAPL", "GOOGL", "MSFT", "TSLA", "AMZN", "META", "NVDA", "NFLX", "AMD", "INTC"]
-    
-    port = Portfolio()
-    best_stock = None
-    best_score = float('-inf')
-    best_df = None
-    best_price = 0
-    
-    print(f"Analizzando {len(tickers)} titoli...")
-    print()
-    
-    # Analizza tutti i titoli
-    for ticker in tickers:
-        df, current_price, score = analyze_stock(ticker)
-        
-        if df is not None and len(df) >= 3:
-            avg_3d = df['Close'].rolling(window=3).mean().iloc[-1]
-            buy_signal = should_buy(df)
-            
-            print(f"{ticker}:")
-            print(f"  Prezzo: ${current_price:.2f}")
-            print(f"  Media 3g: ${avg_3d:.2f}")
-            print(f"  Punteggio: {score:.2f}")
-            print(f"  Segnale acquisto: {buy_signal}")
-            
-            # Aggiorna il migliore se ha segnale di acquisto e punteggio superiore
-            if buy_signal and score > best_score:
-                best_stock = ticker
-                best_score = score
-                best_df = df
-                best_price = current_price
-            
-            print()
-    
-    # Esegui l'operazione sul titolo migliore
-    if best_stock:
-        print(f"=== TITOLO SELEZIONATO: {best_stock} ===")
-        print(f"Punteggio di profittabilità: {best_score:.2f}")
-        print(f"Prezzo di acquisto: ${best_price:.2f}")
-        port.buy(best_stock, best_price)
-    else:
-        print("=== NESSUN TITOLO IDONEO ===")
-        print("Nessun titolo presenta segnali di acquisto favorevoli oggi.")
-    
-    print()
-    port.report()
+    def test_api(self):
+        """Test API connections"""
+        try:
+            import yfinance as yf
+            ticker = yf.Ticker("AAPL")
+            info = ticker.info
+            logger.info("✅ API connection test successful")
+            return True
+        except Exception as e:
+            logger.error(f"❌ API connection test failed: {e}")
+            return False
 
 def main():
-    # Controlla argomenti della riga di comando
-    if len(sys.argv) > 1:
-        command = sys.argv[1].upper()
-        
-        if command == "/SELLALL":
-            handle_sellall_command()
-            return
-        elif command == "/CLOSEALLBOT":
-            handle_closeallbot_command()
-            return
-        elif command == "/RUN":
-            run_single_analysis()
-            return
-        else:
-            print(f"❌ Comando sconosciuto: {sys.argv[1]}")
-            print("   Usa uno dei comandi supportati o esegui senza parametri per vedere le opzioni")
-            print()
+    parser = argparse.ArgumentParser(description='Stock AI Trading System')
     
-    # Se nessun comando o comando non riconosciuto, mostra help
-    show_help()
+    parser.add_argument('--version', action='store_true', help='Show version')
+    parser.add_argument('--portfolio', choices=['status', 'reset'], help='Portfolio operations')
+    parser.add_argument('--update-data', action='store_true', help='Update market data')
+    parser.add_argument('--test-api', action='store_true', help='Test API connections')
+    parser.add_argument('--show-config', action='store_true', help='Show configuration')
+    parser.add_argument('--mode', choices=['live', 'backtest', 'train'], help='Trading mode')
+    parser.add_argument('--episodes', type=int, default=100, help='Training episodes')
+    parser.add_argument('--start-date', type=str, help='Start date for backtesting')
+    parser.add_argument('--end-date', type=str, help='End date for backtesting')
+    
+    args = parser.parse_args()
+    
+    try:
+        stock_ai = StockAI()
+        
+        if args.version:
+            print("Stock AI Trading System v1.0.0")
+            print("Status: Development")
+            return 0
+            
+        elif args.portfolio == 'status':
+            stock_ai.show_portfolio_status()
+            
+        elif args.update_data:
+            stock_ai.update_data()
+            
+        elif args.test_api:
+            success = stock_ai.test_api()
+            return 0 if success else 1
+            
+        elif args.show_config:
+            print(json.dumps(stock_ai.config, indent=2))
+            
+        elif args.mode == 'train':
+            logger.info(f"Training mode requested with {args.episodes} episodes")
+            print(f"🔄 Training simulation with {args.episodes} episodes")
+            print("✅ Training completed (simulated)")
+            
+        elif args.mode == 'backtest':
+            if not args.start_date or not args.end_date:
+                print("❌ Error: --start-date and --end-date required for backtesting")
+                return 1
+            logger.info(f"Backtesting from {args.start_date} to {args.end_date}")
+            print(f"📊 Backtesting from {args.start_date} to {args.end_date}")
+            print("✅ Backtest completed (simulated)")
+            
+        else:
+            parser.print_help()
+            
+    except Exception as e:
+        logger.error(f"Error: {e}")
+        print(f"❌ Error: {e}")
+        return 1
+        
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

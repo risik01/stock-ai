@@ -1,0 +1,24 @@
+{
+  "trading": {
+    "initial_capital": 10000,
+    "max_position_size": 0.2,
+    "stop_loss": 0.05,
+    "take_profit": 0.1
+  },
+  "rl_agent": {
+    "learning_rate": 0.1,
+    "discount_factor": 0.95,
+    "epsilon": 0.1,
+    "batch_size": 32
+  },
+  "data": {
+    "update_interval": 3600,
+    "lookback_days": 365,
+    "symbols": [
+      "AAPL",
+      "GOOGL",
+      "MSFT",
+      "TSLA"
+    ]
+  }
+}

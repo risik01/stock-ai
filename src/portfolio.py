@@ -1,105 +1,159 @@
+import json
+import logging
 import numpy as np
+import pandas as pd
+from datetime import datetime
+from pathlib import Path
+import shutil
+
+logger = logging.getLogger(__name__)
 
 class Portfolio:
     """Classe per gestire un portafoglio di investimenti"""
     
-    def __init__(self, initial_cash=10000):
+    def __init__(self, config):
         """
         Inizializza il portafoglio
         
         Args:
-            initial_cash (float): Denaro iniziale disponibile
+            config (dict): Configurazione del portafoglio, include 'trading' e 'data'
         """
-        self.cash = initial_cash
-        self.positions = {}  # {ticker: {"shares": num, "avg_price": price}}
-        self.transactions = []  # Lista delle transazioni
-    
-    def buy(self, ticker, price, shares=1):
-        """
-        Compra azioni
+        self.config = config
+        self.initial_capital = config['trading']['initial_capital']
+        self.portfolio_file = Path("data/portfolio.json")
+        self.load_portfolio()
         
-        Args:
-            ticker (str): Simbolo del titolo
-            price (float): Prezzo per azione
-            shares (int): Numero di azioni da comprare
-        """
-        total_cost = price * shares
-        
-        if total_cost > self.cash:
-            print(f"Fondi insufficienti per comprare {shares} azioni di {ticker}")
-            return False
-        
-        self.cash -= total_cost
-        
-        if ticker in self.positions:
-            # Aggiorna posizione esistente
-            old_shares = self.positions[ticker]["shares"]
-            old_avg_price = self.positions[ticker]["avg_price"]
-            
-            new_shares = old_shares + shares
-            new_avg_price = ((old_shares * old_avg_price) + (shares * price)) / new_shares
-            
-            self.positions[ticker] = {
-                "shares": new_shares,
-                "avg_price": new_avg_price
-            }
+    def load_portfolio(self):
+        """Carica il portafoglio da un file"""
+        if self.portfolio_file.exists():
+            with open(self.portfolio_file, 'r') as f:
+                data = json.load(f)
+                self.cash = data.get('cash', self.initial_capital)
+                self.positions = data.get('positions', {})
+                self.trades = data.get('trades', [])
         else:
-            # Nuova posizione
-            self.positions[ticker] = {
-                "shares": shares,
-                "avg_price": price
-            }
+            self.cash = self.initial_capital
+            self.positions = {}
+            self.trades = []
+            self.save_portfolio()
+    
+    def save_portfolio(self):
+        """Salva il portafoglio su un file"""
+        data = {
+            'cash': self.cash,
+            'positions': self.positions,
+            'trades': self.trades,
+            'last_updated': datetime.now().isoformat()
+        }
+        with open(self.portfolio_file, 'w') as f:
+            json.dump(data, f, indent=2)
+    
+    def execute_trade(self, action):
+        """Esegue un'operazione di trading reale (non implementata)"""
+        # Questo si collegherebbe a un'API di broker reale
+        logger.warning("Trading reale non implementato - utilizza il paper trading")
+        return self.simulate_trade(action)
+    
+    def simulate_trade(self, action):
+        """Simula un'operazione di trading per il paper trading"""
+        symbol = action.get('symbol')
+        trade_type = action.get('type')  # 'buy' o 'sell'
+        quantity = action.get('quantity', 0)
+        price = action.get('price', 0)
         
-        self.transactions.append({
-            "type": "BUY",
-            "ticker": ticker,
-            "shares": shares,
-            "price": price,
-            "total": total_cost
-        })
+        if trade_type == 'buy':
+            cost = quantity * price
+            if cost <= self.cash:
+                self.cash -= cost
+                self.positions[symbol] = self.positions.get(symbol, 0) + quantity
+                
+                trade = {
+                    'timestamp': datetime.now().isoformat(),
+                    'symbol': symbol,
+                    'type': 'buy',
+                    'quantity': quantity,
+                    'price': price,
+                    'total': cost
+                }
+                self.trades.append(trade)
+                logger.info(f"Acquistato {quantity} azioni di {symbol} a ${price:.2f}")
+                
+        elif trade_type == 'sell':
+            if symbol in self.positions and self.positions[symbol] >= quantity:
+                revenue = quantity * price
+                self.cash += revenue
+                self.positions[symbol] -= quantity
+                
+                if self.positions[symbol] == 0:
+                    del self.positions[symbol]
+                
+                trade = {
+                    'timestamp': datetime.now().isoformat(),
+                    'symbol': symbol,
+                    'type': 'sell',
+                    'quantity': quantity,
+                    'price': price,
+                    'total': revenue
+                }
+                self.trades.append(trade)
+                logger.info(f"Venduto {quantity} azioni di {symbol} a ${price:.2f}")
         
-        print(f"✅ Acquistato {shares} azioni di {ticker} a ${price:.2f} (Totale: ${total_cost:.2f})")
+        self.save_portfolio()
         return True
     
-    def sell(self, ticker, price, shares=None):
-        """
-        Vendi azioni
+    def get_total_value(self):
+        """Calcola il valore totale del portafoglio"""
+        # Questo avrebbe bisogno dei prezzi di mercato attuali
+        # Per ora, restituisce liquidità + valore stimato della posizione
+        return self.cash + sum(pos * 100 for pos in self.positions.values())  # Segnaposto
+    
+    def get_positions(self):
+        """Ottieni le posizioni correnti"""
+        return self.positions.copy()
+    
+    def show_status(self):
+        """Mostra lo stato del portafoglio"""
+        print("\n=== STATO PORTAFOGLIO ===")
+        print(f"Liquidità: ${self.cash:.2f}")
+        print(f"Valore Totale: ${self.get_total_value():.2f}")
+        print(f"Operazioni Totali: {len(self.trades)}")
         
-        Args:
-            ticker (str): Simbolo del titolo
-            price (float): Prezzo per azione
-            shares (int): Numero di azioni da vendere (None = tutte)
-        """
-        if ticker not in self.positions:
-            print(f"Non possiedi azioni di {ticker}")
-            return False
-        
-        available_shares = self.positions[ticker]["shares"]
-        if shares is None:
-            shares = available_shares
-        
-        if shares > available_shares:
-            print(f"Non puoi vendere {shares} azioni di {ticker}, ne possiedi solo {available_shares}")
-            return False
-        
-        total_value = price * shares
-        self.cash += total_value
-        
-        # Aggiorna posizione
-        self.positions[ticker]["shares"] -= shares
-        if self.positions[ticker]["shares"] == 0:
-            del self.positions[ticker]
-        
-        self.transactions.append({
-            "type": "SELL",
-            "ticker": ticker,
-            "shares": shares,
-            "price": price,
-            "total": total_value
-        })
-        
-        print(f"✅ Venduto {shares} azioni di {ticker} a ${price:.2f} (Totale: ${total_value:.2f})")
-        return True
+        if self.positions:
+            print("\nPosizioni:")
+            for symbol, quantity in self.positions.items():
+                print(f"  {symbol}: {quantity} azioni")
+        else:
+            print("\nNessuna posizione aperta")
+            
+        if self.trades:
+            print(f"\nOperazioni Recenti:")
+            for trade in self.trades[-5:]:
+                print(f"  {trade['timestamp'][:19]} - {trade['type'].upper()} {trade['quantity']} {trade['symbol']} @ ${trade['price']:.2f}")
+    
+    def reset(self):
+        """Ripristina il portafoglio allo stato iniziale"""
+        self.cash = self.initial_capital
+        self.positions = {}
+        self.trades = []
+        self.save_portfolio()
+    
+    def add_symbol(self, symbol):
+        """Aggiungi un simbolo alla lista di osservazione"""
+        if 'symbols' not in self.config['data']:
+            self.config['data']['symbols'] = []
+        if symbol not in self.config['data']['symbols']:
+            self.config['data']['symbols'].append(symbol)
+            # Il salvataggio della configurazione dovrebbe essere implementato
+    
+    def remove_symbol(self, symbol):
+        """Rimuovi un simbolo dalla lista di osservazione"""
+        if symbol in self.config['data']['symbols']:
+            self.config['data']['symbols'].remove(symbol)
+    
+    def set_config_param(self, param, value):
+        """Imposta un parametro di configurazione"""
+        # Questo avrebbe bisogno di una gestione adeguata della configurazione
+        logger.info(f"Imposterei {param} = {value}")
     
     def get_portfolio_value(self, current_prices=None):
         """

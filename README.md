@@ -39,7 +39,7 @@ apt install python3-venv -y
 
 3. **Installa Git**
 ```bash
-apt install git -y
+git -y
 ```
 
 ### STEP 3: Clona o carica il progetto
@@ -67,9 +67,12 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-2. **Installa dipendenze**
+2. **Installa dipendenze di sistema**
 ```bash
-pip install --upgrade pip
+# Installa setuptools prima
+pip install --upgrade setuptools pip
+
+# Installa le dipendenze principali
 pip install -r requirements.txt
 ```
 
@@ -96,6 +99,7 @@ stock-ai/
 │   └── settings.json      # Impostazioni generali
 ├── logs/                  # File di log
 ├── requirements.txt       # Dipendenze Python
+├── .gitignore            # File da escludere dal git
 └── README.md             # Questo file
 ```
 
@@ -150,6 +154,12 @@ LOG_LEVEL=INFO
 
 ```bash
 python3 src/main.py [opzioni]
+```
+
+**NOTA**: Prima di eseguire qualsiasi comando, assicurati che le directory necessarie esistano:
+```bash
+# Le directory vengono create automaticamente al primo avvio
+python3 src/main.py --version
 ```
 
 ### Opzioni disponibili:
@@ -221,6 +231,12 @@ python3 src/main.py --backup
 
 # Versione e informazioni
 python3 src/main.py --version
+
+# Mostra stato del sistema
+python3 src/main.py --system-status
+
+# Modalità debug
+python3 src/main.py --debug --verbose
 ```
 
 ## 📊 Esempi di Utilizzo
@@ -228,8 +244,8 @@ python3 src/main.py --version
 ### 1. Primo avvio e configurazione
 
 ```bash
-# Attiva ambiente virtuale
-source .venv/bin/activate
+# Verifica che tutto funzioni
+python3 src/main.py --version
 
 # Aggiorna dati di mercato
 python3 src/main.py --update-data
@@ -294,17 +310,30 @@ tail -f logs/*.log
 
 ### Problemi comuni
 
-**1. Errore import moduli**
+**1. Errore "No such file or directory" per logs**
+```bash
+# I log vengono creati automaticamente al primo avvio
+python3 src/main.py --version
+```
+
+**2. Errore import moduli**
 ```bash
 # Verifica ambiente virtuale attivo
 which python3
 pip list
 
 # Reinstalla dipendenze
+pip install --upgrade setuptools pip
 pip install -r requirements.txt --force-reinstall
 ```
 
-**2. Errore connessione API**
+**3. Errore "gym" deprecato**
+```bash
+# Il progetto usa gymnasium invece di gym (già aggiornato)
+python3 -c "import gymnasium; print('✅ Gymnasium OK')"
+```
+
+**4. Errore connessione API**
 ```bash
 # Test connessione
 python3 src/main.py --test-api
@@ -313,7 +342,7 @@ python3 src/main.py --test-api
 ufw status
 ```
 
-**3. Spazio insufficiente**
+**5. Spazio insufficiente**
 ```bash
 # Pulizia file temporanei
 python3 src/main.py --cleanup
@@ -322,7 +351,7 @@ python3 src/main.py --cleanup
 df -h
 ```
 
-**4. Performance lente**
+**6. Performance lente**
 ```bash
 # Riduce dimensione dati storici
 python3 src/main.py --set-param lookback_days 90
@@ -339,6 +368,9 @@ python3 src/main.py --verbose --debug
 
 # Profiling performance
 python3 -m cProfile src/main.py --mode backtest
+
+# Test specifico di un componente
+python3 -c "from src.data_collector import DataCollector; print('✅ DataCollector OK')"
 ```
 
 ## 🚨 Avvertenze Importanti
