@@ -1,56 +1,368 @@
-# Stock-AI 📈🤖
+# 🤖 Stock AI - Intelligent Trading System
 
-**Stock-AI** è un progetto open source leggero che legge dati azionari da internet, utilizza una semplice intelligenza artificiale (con reinforcement learning) per prendere decisioni automatiche di acquisto e vendita, partendo da un portafoglio virtuale iniziale da **10€** con l'obiettivo di farlo crescere.
+Un sistema di trading intelligente che utilizza Reinforcement Learning per automatizzare le decisioni di investimento nel mercato azionario.
 
----
+## 📋 Caratteristiche
 
-## 🚀 Funzionalità principali
+- **Reinforcement Learning**: Agente RL che impara dalle esperienze di trading
+- **Analisi Tecnica**: Indicatori e pattern di analisi tecnica
+- **Gestione Portfolio**: Sistema automatico di gestione del portafoglio
+- **Visualizzazioni**: Grafici interattivi e dashboard
+- **Backtesting**: Test delle strategie su dati storici
+- **API Integration**: Connessione con Yahoo Finance e altre API
 
-- 📡 Lettura automatica dei dati azionari da Yahoo Finance
-- 🤖 Decisioni di investimento basate su logica semplice o IA
-- 🌐 Dashboard Web con Flask
-- 🧠 Reinforcement Learning (PPO con Stable Baselines 3)
-- 🖥️ Interfaccia CLI semplice per uso locale
-- 💼 Simulazione realistica di portafoglio
+## 🚀 Installazione su Ubuntu 22.04
 
----
+### STEP 1: Accesso e aggiornamento iniziale
 
-## 📦 Requisiti
+1. **Connettiti via SSH**
+```bash
+ssh root@IP_DEL_TUO_SERVER
+```
 
-- Python 3.8+
-- `pip`
+2. **Aggiorna il sistema**
+```bash
+apt update && apt upgrade -y
+```
 
-### ▶️ Installazione pacchetti:
+### STEP 2: Installazione ambiente Python
+
+1. **Installa Python 3 e pip**
+```bash
+apt install python3 python3-pip -y
+```
+
+2. **Installa venv (consigliato)**
+```bash
+apt install python3-venv -y
+```
+
+3. **Installa Git**
+```bash
+apt install git -y
+```
+
+### STEP 3: Clona o carica il progetto
+
+**Opzione A: Da repository GitHub**
+```bash
+git clone https://github.com/TUO_USERNAME/stock-ai.git
+cd stock-ai
+```
+
+**Opzione B: Caricamento manuale**
+```bash
+# Dal tuo PC locale
+scp -r stock-ai root@IP:/root/
+
+# Sul server
+cd /root/stock-ai
+```
+
+### STEP 4: Installazione dipendenze
+
+1. **Crea ambiente virtuale (consigliato)**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+2. **Installa dipendenze**
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+3. **Verifica installazione**
+```bash
+python3 -c "import yfinance, pandas, numpy, matplotlib; print('✅ Dipendenze installate correttamente')"
+```
+
+## 📁 Struttura del Progetto
+
+```
+stock-ai/
+├── src/                    # Codice sorgente
+│   ├── main.py            # Script principale
+│   ├── rl_agent.py        # Agente Reinforcement Learning
+│   ├── portfolio.py       # Gestione portafoglio
+│   ├── data_collector.py  # Raccolta dati finanziari
+│   └── visualizer.py      # Grafici e visualizzazioni
+├── data/                  # Dati e modelli salvati
+│   ├── stock_data.csv     # Dati storici titoli
+│   ├── rl_model.pkl       # Modello RL salvato
+│   └── portfolio.json     # Stato del portafoglio
+├── config/                # File di configurazione
+│   └── settings.json      # Impostazioni generali
+├── logs/                  # File di log
+├── requirements.txt       # Dipendenze Python
+└── README.md             # Questo file
+```
+
+## ⚙️ Configurazione
+
+### File di configurazione principale: `config/settings.json`
+
+```json
+{
+  "trading": {
+    "initial_capital": 10000,
+    "max_position_size": 0.2,
+    "stop_loss": 0.05,
+    "take_profit": 0.1
+  },
+  "rl_agent": {
+    "learning_rate": 0.1,
+    "discount_factor": 0.95,
+    "epsilon": 0.1,
+    "batch_size": 32
+  },
+  "data": {
+    "update_interval": 3600,
+    "lookback_days": 365,
+    "symbols": ["AAPL", "GOOGL", "MSFT", "TSLA"]
+  },
+  "risk_management": {
+    "max_daily_loss": 0.02,
+    "position_sizing": "kelly",
+    "diversification_limit": 5
+  }
+}
+```
+
+### Variabili d'ambiente (opzionali)
+
+Crea un file `.env` nella root del progetto:
 
 ```bash
-pip install -r requirements.txt
+# API Keys (se necessarie)
+ALPHA_VANTAGE_KEY=your_api_key_here
+QUANDL_KEY=your_quandl_key_here
 
-## Struttura progetto
-stock-ai/
-├── src/
-│   ├── data_collector.py       # Lettura dati
-│   ├── strategy_engine.py      # Strategia base
-│   ├── portfolio.py            # Portafoglio simulato
-│   ├── dashboard.py            # Web UI (Flask)
-│   ├── trading_env.py          # Ambiente RL
-│   ├── train_rl.py             # Allenamento IA
-│   ├── test_rl.py              # Test IA
-│   └── main.py                 # CLI entry point
-├── requirements.txt
-├── README.md
-└── .gitignore
+# Trading settings
+PAPER_TRADING=true
+LOG_LEVEL=INFO
+```
 
-## Esecuzione
-python src/main.py
+## 🎯 Comandi Disponibili
 
-## dashBoard Web
-1) python src/dashboard.py
-2) Apri il browser su:  http://localhost:5000
+### Comando principale
 
-## Addestramento IA (Reinforcement Learning)
-python src/train_rl.py
-Questo addestra un agente IA sul titolo AAPL con dati di 1 mese.
+```bash
+python3 src/main.py [opzioni]
+```
 
-## Testare l’agente addestrato
-python src/test_rl.py
-Visualizza a video i risultati delle decisioni dell'agente allenato.
+### Opzioni disponibili:
+
+#### **Modalità di Trading**
+```bash
+# Trading automatico (modalità live)
+python3 src/main.py --mode live
+
+# Modalità backtesting
+python3 src/main.py --mode backtest --start-date 2023-01-01 --end-date 2024-01-01
+
+# Training dell'agente RL
+python3 src/main.py --mode train --episodes 1000
+```
+
+#### **Gestione Portafoglio**
+```bash
+# Visualizza stato del portafoglio
+python3 src/main.py --portfolio status
+
+# Reset del portafoglio
+python3 src/main.py --portfolio reset
+
+# Aggiorna dati di mercato
+python3 src/main.py --update-data
+```
+
+#### **Analisi e Visualizzazioni**
+```bash
+# Genera report completo
+python3 src/main.py --report
+
+# Mostra performance dell'agente RL
+python3 src/main.py --rl-stats
+
+# Visualizza grafici
+python3 src/main.py --plot AAPL
+
+# Dashboard interattiva
+python3 src/main.py --dashboard
+```
+
+#### **Configurazione**
+```bash
+# Aggiunge nuovo simbolo al portafoglio
+python3 src/main.py --add-symbol NVDA
+
+# Rimuove simbolo
+python3 src/main.py --remove-symbol TSLA
+
+# Modifica parametri RL
+python3 src/main.py --set-param learning_rate 0.05
+
+# Mostra configurazione attuale
+python3 src/main.py --show-config
+```
+
+#### **Utilità**
+```bash
+# Test delle connessioni API
+python3 src/main.py --test-api
+
+# Pulizia dei file temporanei
+python3 src/main.py --cleanup
+
+# Backup dei dati
+python3 src/main.py --backup
+
+# Versione e informazioni
+python3 src/main.py --version
+```
+
+## 📊 Esempi di Utilizzo
+
+### 1. Primo avvio e configurazione
+
+```bash
+# Attiva ambiente virtuale
+source .venv/bin/activate
+
+# Aggiorna dati di mercato
+python3 src/main.py --update-data
+
+# Visualizza stato iniziale
+python3 src/main.py --portfolio status
+```
+
+### 2. Training dell'agente RL
+
+```bash
+# Training con 500 episodi
+python3 src/main.py --mode train --episodes 500
+
+# Visualizza statistiche apprendimento
+python3 src/main.py --rl-stats
+```
+
+### 3. Backtesting di una strategia
+
+```bash
+# Test su periodo specifico
+python3 src/main.py --mode backtest --start-date 2023-01-01 --end-date 2023-12-31
+
+# Genera report dettagliato
+python3 src/main.py --report --save-html
+```
+
+### 4. Trading automatico
+
+```bash
+# Modalità paper trading (simulazione)
+PAPER_TRADING=true python3 src/main.py --mode live
+
+# Trading reale (ATTENZIONE: usa denaro vero!)
+python3 src/main.py --mode live --real-trading
+```
+
+## 📈 Monitoraggio e Log
+
+### File di log
+
+I log vengono salvati automaticamente in:
+- `logs/trading.log` - Log delle operazioni di trading
+- `logs/rl_agent.log` - Log dell'agente RL
+- `logs/error.log` - Log degli errori
+
+### Visualizzazione log in tempo reale
+
+```bash
+# Log trading
+tail -f logs/trading.log
+
+# Log agente RL
+tail -f logs/rl_agent.log
+
+# Tutti i log
+tail -f logs/*.log
+```
+
+## 🔧 Risoluzione Problemi
+
+### Problemi comuni
+
+**1. Errore import moduli**
+```bash
+# Verifica ambiente virtuale attivo
+which python3
+pip list
+
+# Reinstalla dipendenze
+pip install -r requirements.txt --force-reinstall
+```
+
+**2. Errore connessione API**
+```bash
+# Test connessione
+python3 src/main.py --test-api
+
+# Verifica firewall
+ufw status
+```
+
+**3. Spazio insufficiente**
+```bash
+# Pulizia file temporanei
+python3 src/main.py --cleanup
+
+# Verifica spazio disco
+df -h
+```
+
+**4. Performance lente**
+```bash
+# Riduce dimensione dati storici
+python3 src/main.py --set-param lookback_days 90
+
+# Ottimizza parametri RL
+python3 src/main.py --set-param batch_size 16
+```
+
+### Debug avanzato
+
+```bash
+# Modalità verbose
+python3 src/main.py --verbose --debug
+
+# Profiling performance
+python3 -m cProfile src/main.py --mode backtest
+```
+
+## 🚨 Avvertenze Importanti
+
+⚠️ **DISCLAIMER**: Questo software è per scopi educativi e di ricerca. Il trading automatico comporta rischi finanziari significativi.
+
+- **Mai investire più di quanto puoi permetterti di perdere**
+- **Testa sempre in modalità paper trading prima del trading reale**
+- **I risultati passati non garantiscono performance future**
+- **Monitora costantemente le posizioni aperte**
+
+## 📞 Supporto
+
+Per problemi o domande:
+
+1. Controlla i log in `logs/`
+2. Verifica la configurazione in `config/settings.json`
+3. Esegui i test: `python3 src/main.py --test-api`
+4. Controlla lo stato del sistema: `python3 src/main.py --system-status`
+
+## 📄 Licenza
+
+Questo progetto è distribuito sotto licenza MIT. Vedi il file `LICENSE` per maggiori dettagli.
+
+---
+
+**🚀 Buon Trading con l'IA! 📈**

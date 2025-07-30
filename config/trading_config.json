@@ -1,0 +1,90 @@
+{
+  "trading_settings": {
+    "aggressiveness_level": 7,
+    "check_interval_seconds": 10,
+    "max_positions": 10,
+    "risk_per_trade": 0.15,
+    "stop_loss_percentage": -0.05,
+    "take_profit_percentage": 0.08
+  },
+  "data_settings": {
+    "analysis_period": "5d",
+    "price_update_period": "2d",
+    "min_data_points": 2,
+    "max_retries": 3,
+    "retry_delay_seconds": 2
+  },
+  "market_filters": {
+    "min_stock_price": 10.0,
+    "max_volatility": 0.08,
+    "aggressiveness_threshold": 2.0,
+    "volume_filter_enabled": false,
+    "min_daily_volume": 1000000
+  },
+  "ai_settings": {
+    "learning_rate": 0.1,
+    "discount_factor": 0.95,
+    "epsilon_start": 0.1,
+    "epsilon_min": 0.01,
+    "epsilon_decay": 0.995,
+    "experience_replay_size": 1000
+  },
+  "reporting": {
+    "periodic_report_cycles": 5,
+    "blacklist_report_cycles": 20,
+    "detailed_position_updates": true,
+    "log_level": "INFO"
+  },
+  "aggressiveness_presets": {
+    "1": {
+      "name": "Molto Conservativo",
+      "check_interval_seconds": 300,
+      "max_positions": 2,
+      "risk_per_trade": 0.05,
+      "stop_loss_percentage": -0.03,
+      "take_profit_percentage": 0.05,
+      "aggressiveness_threshold": 5.0,
+      "max_volatility": 0.04
+    },
+    "3": {
+      "name": "Conservativo",
+      "check_interval_seconds": 120,
+      "max_positions": 3,
+      "risk_per_trade": 0.08,
+      "stop_loss_percentage": -0.04,
+      "take_profit_percentage": 0.06,
+      "aggressiveness_threshold": 4.0,
+      "max_volatility": 0.06
+    },
+    "5": {
+      "name": "Moderato",
+      "check_interval_seconds": 60,
+      "max_positions": 4,
+      "risk_per_trade": 0.12,
+      "stop_loss_percentage": -0.05,
+      "take_profit_percentage": 0.07,
+      "aggressiveness_threshold": 3.0,
+      "max_volatility": 0.07
+    },
+    "7": {
+      "name": "Aggressivo",
+      "check_interval_seconds": 30,
+      "max_positions": 5,
+      "risk_per_trade": 0.15,
+      "stop_loss_percentage": -0.05,
+      "take_profit_percentage": 0.08,
+      "aggressiveness_threshold": 2.0,
+      "max_volatility": 0.08
+    },
+    "10": {
+      "name": "Molto Aggressivo",
+      "check_interval_seconds": 15,
+      "max_positions": 7,
+      "risk_per_trade": 0.20,
+      "stop_loss_percentage": -0.07,
+      "take_profit_percentage": 0.12,
+      "aggressiveness_threshold": 1.0,
+      "max_volatility": 0.12
+    }
+  }
+}
