@@ -171,7 +171,118 @@ python src/main.py optimize-portfolio --method modern_portfolio_theory
 
 # Monte Carlo simulation
 python src/main.py monte-carlo --simulations 10000 --days 252
+
+# 🔄 TRADING AUTOMATICO CONTINUO - NUOVO!
+python src/main.py --live-monitor
+
+# Trading automatico con parametri personalizzati
+python src/main.py --live-monitor --check-interval 60 --max-trades-per-day 50
+
+# Monitoraggio avanzato
+python src/main.py --live-monitor --debug --verbose
 ```
+
+## 🔄 **Trading Automatico Continuo**
+
+### **Caratteristiche del Live Trading Monitor**
+
+Il sistema include un **modulo di monitoraggio e trading automatico continuo** che:
+
+- 🕒 **Monitora 24/7**: Controllo continuo dei mercati (durante orari di apertura)
+- 🤖 **Trading Automatico**: Esecuzione automatica di buy/sell basata su segnali IA
+- 📊 **Analisi Tecnica**: RSI, MACD, Bollinger Bands per decisioni informate
+- 🛡️ **Risk Management**: Controlli di rischio dinamici e limiti giornalieri
+- 📱 **Real-time Updates**: Aggiornamenti in tempo reale ogni 60-300 secondi
+
+### **Come Funziona**
+
+1. **Avvio Sistema**:
+```bash
+python src/main.py --live-monitor
+```
+
+2. **Il sistema**:
+   - Verifica se il mercato è aperto
+   - Scarica dati real-time per tutti i simboli configurati
+   - Calcola indicatori tecnici (RSI, MACD)
+   - Genera segnali di trading usando RL + analisi tecnica
+   - Esegue trades automaticamente se i segnali superano la soglia di confidenza
+
+3. **Controlli di Sicurezza**:
+   - ✅ Limite massimo trades per giorno
+   - ✅ Intervallo minimo tra operazioni
+   - ✅ Controllo fondi disponibili
+   - ✅ Position sizing basato su risk management
+   - ✅ Stop loss e take profit automatici
+
+### **Configurazione Trading Automatico**
+
+Il file `config/settings.json` include sezioni specifiche:
+
+```json
+{
+  "trading": {
+    "live_trading": {
+      "enabled": true,
+      "check_interval": 300,
+      "market_hours_only": true,
+      "max_trades_per_day": 20,
+      "min_trade_interval": 60,
+      "risk_per_trade": 0.02
+    }
+  },
+  "monitoring": {
+    "price_alerts": true,
+    "volume_alerts": true,
+    "technical_indicators": ["RSI", "MACD", "BB"],
+    "alert_thresholds": {
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "volume_spike": 2.0
+    }
+  }
+}
+```
+
+### **Segnali di Trading Supportati**
+
+- **RSI Signals**: Overbought (>70) = SELL, Oversold (<30) = BUY
+- **MACD Signals**: Histogram positivo = BUY, negativo = SELL  
+- **Volume Analysis**: Spike volume per confermare segnali
+- **RL Confirmation**: L'agente RL conferma o modifica i segnali tecnici
+- **Ensemble Decision**: Combinazione pesata di tutti i segnali
+
+### **Monitoraggio dello Status**
+
+Durante l'esecuzione, il sistema mostra:
+```
+📊 Portfolio: $12,345.67 | Trades oggi: 3 | Mercato: 🟢
+```
+
+### **Comandi di Controllo**
+
+```bash
+# Avvia con parametri custom
+python src/main.py --live-monitor --check-interval 120 --max-trades-per-day 30
+
+# Solo durante orari di mercato
+python src/main.py --live-monitor --market-hours-only
+
+# Debug mode per vedere tutti i segnali
+python src/main.py --live-monitor --debug
+
+# Stop: Ctrl+C (salva stato e ferma gracefully)
+```
+
+### **Sicurezza e Risk Management**
+
+⚠️ **IMPORTANTE**: Il trading automatico opera con denaro reale!
+
+- 🔒 **Position Limits**: Massimo 20% del portfolio per posizione
+- 🛑 **Daily Limits**: Limite operazioni giornaliere configurabile
+- 💰 **Risk per Trade**: Massimo 2% del portfolio a rischio per operazione
+- 📊 **Portfolio Monitoring**: Controllo continuo di drawdown e esposizione
+- 🚨 **Emergency Stop**: File `data/trader_control.txt` per stop immediato
 
 ### Dashboard Web
 

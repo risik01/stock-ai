@@ -787,6 +787,14 @@ Esempi di utilizzo:
     parser.add_argument('--projection-days', type=int, default=252,
                        help='Giorni di proiezione Monte Carlo')
     
+    # Live Trading Monitor
+    parser.add_argument('--live-monitor', action='store_true',
+                       help='Avvia monitoraggio e trading automatico continuo')
+    parser.add_argument('--check-interval', type=int, default=300,
+                       help='Intervallo controllo mercato (secondi)')
+    parser.add_argument('--max-trades-per-day', type=int, default=20,
+                       help='Massimo numero trades per giorno')
+    
     # Debug
     parser.add_argument('--debug', action='store_true', 
                        help='Modalità debug')
@@ -865,6 +873,49 @@ Esempi di utilizzo:
         elif args.monte_carlo:
             stock_ai.run_monte_carlo_analysis(n_simulations=args.simulations, 
                                             n_days=args.projection_days)
+            return 0
+            
+        elif args.live_monitor:
+            # Avvia Live Trading Monitor
+            from live_trading_monitor import LiveTradingMonitor
+            
+            # Aggiorna configurazione se specificato
+            if hasattr(args, 'check_interval') and args.check_interval:
+                if 'trading' not in stock_ai.config:
+                    stock_ai.config['trading'] = {}
+                if 'live_trading' not in stock_ai.config['trading']:
+                    stock_ai.config['trading']['live_trading'] = {}
+                stock_ai.config['trading']['live_trading']['check_interval'] = args.check_interval
+            
+            if hasattr(args, 'max_trades_per_day') and args.max_trades_per_day:
+                stock_ai.config['trading']['live_trading']['max_trades_per_day'] = args.max_trades_per_day
+            
+            try:
+                monitor = LiveTradingMonitor()
+                print("🚀 Avvio Live Trading Monitor...")
+                print("📊 Monitoraggio continuo e trading automatico")
+                print("⚠️  Premi Ctrl+C per fermare")
+                print("-" * 60)
+                
+                monitor.start_monitoring()
+                
+                # Loop status
+                import time
+                while monitor.is_running:
+                    status = monitor.get_status()
+                    print(f"\r📊 Portfolio: ${status['portfolio_value']:.2f} | "
+                          f"Trades oggi: {status['trades_today']} | "
+                          f"Mercato: {'🟢' if status['market_open'] else '🔴'}", end='', flush=True)
+                    time.sleep(30)
+                    
+            except KeyboardInterrupt:
+                print("\n🛑 Fermando Live Trading Monitor...")
+                monitor.stop_monitoring()
+                print("✅ Monitor fermato correttamente")
+            except Exception as e:
+                logger.error(f"❌ Errore Live Trading Monitor: {e}")
+                print(f"❌ Errore: {e}")
+            
             return 0
             
         else:
