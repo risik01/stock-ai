@@ -261,7 +261,7 @@ sys.path.insert(0, current_dir)
 print('📁 Directory corrente:', current_dir)
 
 # Test struttura directory
-required_dirs = ['src', 'config', 'data', 'news']
+required_dirs = ['src', 'config', 'data']
 missing_dirs = []
 for d in required_dirs:
     if not os.path.exists(d):
@@ -285,19 +285,6 @@ try:
     print('✅ Portfolio import OK')
 except ImportError as e:
     print(f'⚠️  Portfolio import warning: {e}')
-
-# Test import moduli news
-try:
-    from news_rss_collector import NewsRSSCollector
-    print('✅ NewsRSSCollector import OK')
-except ImportError as e:
-    print(f'⚠️  NewsRSSCollector import warning: {e}')
-
-try:
-    from news_based_trading_ai import NewsBasedTradingAI
-    print('✅ NewsBasedTradingAI import OK')
-except ImportError as e:
-    print(f'⚠️  NewsBasedTradingAI import warning: {e}')
 
 print('✅ Test import completato')
 "

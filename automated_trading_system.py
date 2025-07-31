@@ -16,11 +16,15 @@ from typing import Dict, List, Optional
 import threading
 import schedule
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Carica variabili d'ambiente
+load_dotenv()
 
 # Aggiungi path per importazioni
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(current_dir, 'src'))
-sys.path.insert(0, os.path.join(current_dir, 'trading-new'))
+sys.path.insert(0, os.path.join(current_dir, 'news'))
 sys.path.insert(0, current_dir)
 
 # Import moduli del trading system
@@ -29,9 +33,9 @@ try:
     from src.rl_agent import RLAgent
     from src.data_collector import DataCollector
     from src.strategy_engine import StrategyEngine
-    from trading_new.news_rss_collector import NewsRSSCollector
-    from trading_new.news_sentiment_analyzer import NewsSentimentAnalyzer
-    from trading_new.news_trading_ai import NewsTradingAI
+    from news_rss_collector import NewsRSSCollector
+    from news_sentiment_analyzer import NewsSentimentAnalyzer
+    from news_based_trading_ai import NewsBasedTradingAI
 except ImportError as e:
     print(f"❌ Errore importazione moduli: {e}")
     print("🔧 Tentativo import alternativi...")
@@ -133,7 +137,7 @@ class AutomatedTradingSystem:
             # News Components
             self.news_collector = NewsRSSCollector(config_path=self.config_path)
             self.sentiment_analyzer = NewsSentimentAnalyzer()
-            self.news_trading_ai = NewsTradingAI(config_path=self.config_path)
+            self.news_trading_ai = NewsBasedTradingAI(config_path=self.config_path)
             
             # Statistiche
             self.stats = {
