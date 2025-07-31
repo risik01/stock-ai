@@ -1,54 +1,22 @@
 {
-  "trading": {
-    "initial_capital": 10000,
-    "max_position_size": 0.2,
-    "stop_loss": 0.05,
-    "take_profit": 0.1,
-    "live_trading": {
-      "enabled": true,
-      "check_interval": 300,
-      "market_hours_only": true,
-      "max_trades_per_day": 20,
-      "min_trade_interval": 60,
-      "risk_per_trade": 0.02
-    }
+  "timestamp": "2025-07-31T10:34:28.107520",
+  "portfolio_status": {
+    "cash": 10000,
+    "total_position_value": 0,
+    "total_portfolio_value": 10000,
+    "positions": {},
+    "trade_count": 0,
+    "last_update": "2025-07-31T10:34:28.107525"
   },
-  "rl_agent": {
-    "learning_rate": 0.1,
-    "discount_factor": 0.95,
-    "epsilon": 0.1,
-    "batch_size": 32
-  },
-  "data": {
-    "update_interval": 300,
-    "lookback_days": 365,
-    "symbols": [
-      "AAPL",
-      "GOOGL",
-      "MSFT",
-      "TSLA",
-      "AMZN",
-      "META",
-      "NVDA",
-      "NFLX"
-    ],
-    "real_time": {
-      "enabled": true,
-      "source": "yfinance",
-      "refresh_rate": 60
-    }
-  },
-  "monitoring": {
-    "price_alerts": true,
-    "volume_alerts": true,
-    "technical_indicators": ["RSI", "MACD", "BB"],
-    "alert_thresholds": {
-      "rsi_oversold": 30,
-      "rsi_overbought": 70,
-      "volume_spike": 2.0
-    }
-  },
-  "news_trading": {
+  "trading_config": {
+    "min_confidence": 0.6,
+    "max_position_size": 0.1,
+    "stop_loss_pct": 0.05,
+    "take_profit_pct": 0.15,
+    "max_trades_per_hour": 5,
+    "sentiment_threshold": 0.2,
+    "news_freshness_minutes": 30,
+    "min_news_count": 2,
     "enabled": true,
     "update_interval": 600,
     "min_update_interval": 300,
@@ -78,5 +46,18 @@
         "finance_dict": 0.3
       }
     }
-  }
+  },
+  "monitored_symbols": [
+    "AAPL",
+    "GOOGL",
+    "MSFT",
+    "TSLA",
+    "AMZN",
+    "META",
+    "NVDA",
+    "NFLX"
+  ],
+  "sentiment_history": {},
+  "recent_alerts": [],
+  "all_trades": []
 }

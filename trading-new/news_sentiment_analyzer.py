@@ -37,6 +37,32 @@ class SentimentScore:
     confidence: float  # 0 a 1
     method: str  # metodo usato
     
+    # Aliases per compatibilità
+    @property
+    def sentiment_score(self):
+        return self.polarity
+    
+    @property
+    def sentiment_label(self):
+        if self.polarity > 0.1:
+            return "Positive"
+        elif self.polarity < -0.1:
+            return "Negative"
+        else:
+            return "Neutral"
+    
+    @property
+    def textblob_score(self):
+        return getattr(self, '_textblob_score', self.polarity)
+    
+    @property
+    def vader_score(self):
+        return getattr(self, '_vader_score', self.polarity)
+    
+    @property
+    def finance_score(self):
+        return getattr(self, '_finance_score', self.polarity)
+    
 @dataclass
 class TradingSignal:
     """Segnale di trading basato su notizie"""
@@ -205,41 +231,55 @@ class NewsSentimentAnalyzer:
     def _analyze_hybrid(self, text: str) -> SentimentScore:
         """Analisi sentiment ibrida combinando più metodi"""
         scores = []
+        individual_scores = {}
         
         # Prova tutti i metodi disponibili
         if TEXTBLOB_AVAILABLE:
-            scores.append(self._analyze_with_textblob(text))
+            textblob_score = self._analyze_with_textblob(text)
+            scores.append(textblob_score)
+            individual_scores['textblob'] = textblob_score.polarity
         
         if VADER_AVAILABLE:
-            scores.append(self._analyze_with_vader(text))
+            vader_score = self._analyze_with_vader(text)
+            scores.append(vader_score)
+            individual_scores['vader'] = vader_score.polarity
         
         # Sempre includi dizionario finanziario
-        scores.append(self._analyze_with_financial_dict(text))
+        finance_score = self._analyze_with_financial_dict(text)
+        scores.append(finance_score)
+        individual_scores['finance'] = finance_score.polarity
         
         if not scores:
-            return SentimentScore(0.0, 0.0, 0.0, 'none')
+            sentiment = SentimentScore(0.0, 0.0, 0.0, 'none')
+        else:
+            # Calcola media ponderata (dizionario finanziario ha peso maggiore)
+            weights = []
+            for score in scores:
+                if score.method == 'financial_dict':
+                    weights.append(0.5)  # Peso maggiore per dizionario finanziario
+                else:
+                    weights.append(0.25)
+            
+            weights = np.array(weights)
+            weights = weights / weights.sum()  # Normalizza
+            
+            polarity = np.average([s.polarity for s in scores], weights=weights)
+            subjectivity = np.average([s.subjectivity for s in scores], weights=weights)
+            confidence = np.average([s.confidence for s in scores], weights=weights)
+            
+            sentiment = SentimentScore(
+                polarity=polarity,
+                subjectivity=subjectivity,
+                confidence=confidence,
+                method='hybrid'
+            )
         
-        # Calcola media ponderata (dizionario finanziario ha peso maggiore)
-        weights = []
-        for score in scores:
-            if score.method == 'financial_dict':
-                weights.append(0.5)  # Peso maggiore per dizionario finanziario
-            else:
-                weights.append(0.25)
+        # Aggiungi i punteggi individuali come attributi privati
+        sentiment._textblob_score = individual_scores.get('textblob', 0.0)
+        sentiment._vader_score = individual_scores.get('vader', 0.0)
+        sentiment._finance_score = individual_scores.get('finance', 0.0)
         
-        weights = np.array(weights)
-        weights = weights / weights.sum()  # Normalizza
-        
-        polarity = np.average([s.polarity for s in scores], weights=weights)
-        subjectivity = np.average([s.subjectivity for s in scores], weights=weights)
-        confidence = np.average([s.confidence for s in scores], weights=weights)
-        
-        return SentimentScore(
-            polarity=polarity,
-            subjectivity=subjectivity,
-            confidence=confidence,
-            method='hybrid'
-        )
+        return sentiment
     
     def analyze_article_sentiment(self, article: NewsArticle) -> SentimentScore:
         """Analizza sentiment di un singolo articolo"""

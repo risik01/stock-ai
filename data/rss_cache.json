@@ -1,0 +1,23 @@
+{
+  "etags": {
+    "marketwatch_pulse": "W/\"33db-Yh1imrZGzdiGu/2imw4NiVaMbvY\"",
+    "investing_com": "W/\"10a7-63b3748f363bf\"",
+    "seeking_alpha": "W/\"1f08f5b0b357450b77584984422a96cb\"",
+    "bloomberg": "W/\"856f-gGrdFd1bXSlda0PUq4czgLmglTk\"",
+    "marketwatch": "W/\"2005-86yzOfUB9uxvm/7hu0KifaisZ6A\""
+  },
+  "last_modified": {
+    "investing_com": "Thu, 31 Jul 2025 10:41:33 GMT"
+  },
+  "last_fetch": {
+    "marketwatch_pulse": 1753958896.5528793,
+    "seeking_alpha": 1753958896.5624306,
+    "cnbc_markets": 1753958896.6334932,
+    "yahoo_finance_aapl": 1753958896.6657178,
+    "benzinga": 1753958896.7319396,
+    "marketwatch": 1753958896.8438253,
+    "bloomberg": 1753958896.9628096,
+    "finviz": 1753958897.1667526
+  },
+  "saved_at": "2025-07-31T10:48:17.172376"
+}

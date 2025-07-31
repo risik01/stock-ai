@@ -1,0 +1,41 @@
+2025-07-31 10:49:08,290 - news_rss_collector - INFO - Cache caricata: 5 ETags
+2025-07-31 10:49:08,291 - news_rss_collector - INFO - NewsRSSCollector inizializzato con successo
+2025-07-31 10:49:08,291 - news_rss_collector - INFO - Rate limiting: 600s tra aggiornamenti
+2025-07-31 10:49:08,291 - news_rss_collector - INFO - Feed RSS configurati: 10
+2025-07-31 10:49:08,299 - news_sentiment_analyzer - INFO - NewsSentimentAnalyzer inizializzato
+2025-07-31 10:49:08,300 - news_based_trading_ai - INFO - NewsBasedTradingAI inizializzato con successo
+2025-07-31 10:50:13,473 - news_rss_collector - INFO - Cache caricata: 5 ETags
+2025-07-31 10:50:13,474 - news_rss_collector - INFO - NewsRSSCollector inizializzato con successo
+2025-07-31 10:50:13,474 - news_rss_collector - INFO - Rate limiting: 600s tra aggiornamenti
+2025-07-31 10:50:13,474 - news_rss_collector - INFO - Feed RSS configurati: 10
+2025-07-31 10:50:13,482 - news_sentiment_analyzer - INFO - NewsSentimentAnalyzer inizializzato
+2025-07-31 10:50:13,482 - news_based_trading_ai - INFO - NewsBasedTradingAI inizializzato con successo
+2025-07-31 10:50:34,521 - news_rss_collector - INFO - Cache caricata: 5 ETags
+2025-07-31 10:50:34,521 - news_rss_collector - INFO - NewsRSSCollector inizializzato con successo
+2025-07-31 10:50:34,521 - news_rss_collector - INFO - Rate limiting: 600s tra aggiornamenti
+2025-07-31 10:50:34,521 - news_rss_collector - INFO - Feed RSS configurati: 10
+2025-07-31 10:50:34,529 - news_sentiment_analyzer - INFO - NewsSentimentAnalyzer inizializzato
+2025-07-31 10:50:34,529 - news_based_trading_ai - INFO - NewsBasedTradingAI inizializzato con successo
+2025-07-31 10:51:06,014 - news_rss_collector - INFO - Cache caricata: 5 ETags
+2025-07-31 10:51:06,014 - news_rss_collector - INFO - NewsRSSCollector inizializzato con successo
+2025-07-31 10:51:06,014 - news_rss_collector - INFO - Rate limiting: 600s tra aggiornamenti
+2025-07-31 10:51:06,015 - news_rss_collector - INFO - Feed RSS configurati: 10
+2025-07-31 10:51:06,023 - news_sentiment_analyzer - INFO - NewsSentimentAnalyzer inizializzato
+2025-07-31 10:51:06,023 - news_based_trading_ai - INFO - NewsBasedTradingAI inizializzato con successo
+2025-07-31 10:51:51,696 - news_rss_collector - INFO - Cache caricata: 5 ETags
+2025-07-31 10:51:51,696 - news_rss_collector - INFO - NewsRSSCollector inizializzato con successo
+2025-07-31 10:51:51,696 - news_rss_collector - INFO - Rate limiting: 600s tra aggiornamenti
+2025-07-31 10:51:51,697 - news_rss_collector - INFO - Feed RSS configurati: 10
+2025-07-31 10:51:51,705 - news_sentiment_analyzer - INFO - NewsSentimentAnalyzer inizializzato
+2025-07-31 10:51:51,705 - news_based_trading_ai - INFO - NewsBasedTradingAI inizializzato con successo
+2025-07-31 10:52:05,299 - news_rss_collector - INFO - Cache caricata: 5 ETags
+2025-07-31 10:52:05,299 - news_rss_collector - INFO - NewsRSSCollector inizializzato con successo
+2025-07-31 10:52:05,299 - news_rss_collector - INFO - Rate limiting: 600s tra aggiornamenti
+2025-07-31 10:52:05,299 - news_rss_collector - INFO - Feed RSS configurati: 10
+2025-07-31 10:52:05,307 - news_sentiment_analyzer - INFO - NewsSentimentAnalyzer inizializzato
+2025-07-31 10:52:05,307 - news_based_trading_ai - INFO - NewsBasedTradingAI inizializzato con successo
+2025-07-31 10:52:05,307 - news_based_trading_ai - INFO - Avvio ciclo trading basato su notizie...
+2025-07-31 10:52:05,307 - news_rss_collector - INFO - Avvio raccolta notizie da tutti i feed RSS...
+2025-07-31 10:52:05,364 - news_rss_collector - ERROR - Errore network per reuters_business: HTTPConnectionPool(host='feeds.reuters.com', port=80): Max retries exceeded with url: /reuters/businessNews (Caused by NameResolutionError("<urllib3.connection.HTTPConnection object at 0x77026872d970>: Failed to resolve 'feeds.reuters.com' ([Errno -2] Name or service not known)"))
+2025-07-31 10:52:05,414 - news_rss_collector - INFO - Raccolti 0 articoli recenti da 10 feed
+2025-07-31 10:52:05,414 - news_based_trading_ai - INFO - Nessuna notizia fresca trovata

@@ -16,6 +16,8 @@ from urllib.parse import urljoin
 from dataclasses import dataclass
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import hashlib
+import os
 
 @dataclass
 class NewsArticle:
@@ -50,23 +52,49 @@ class NewsRSSCollector:
         )
         self.logger = logging.getLogger(__name__)
         
-        # RSS Feeds principali
-        self.rss_feeds = {
-            'yahoo_finance': 'https://feeds.finance.yahoo.com/rss/2.0/headline',
-            'marketwatch': 'https://feeds.marketwatch.com/marketwatch/topstories/',
-            'cnbc': 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
-            'reuters_business': 'https://feeds.reuters.com/reuters/businessNews',
-            'bloomberg': 'https://feeds.bloomberg.com/markets/news.rss',
-            'seeking_alpha': 'https://seekingalpha.com/feed.xml',
-            'benzinga': 'https://feeds.benzinga.com/benzinga',
-            'finviz': 'https://finviz.com/news.ashx',
-            'investing_com': 'https://www.investing.com/rss/news.rss',
-            'zacks': 'https://www.zacks.com/rss/articles.xml'
-        }
+        # Configurazione da settings.json
+        news_config = self.config.get('news_trading', {})
         
-        # Cache per evitare duplicati
+        # RSS Feeds da configurazione
+        self.rss_feeds = news_config.get('rss_feeds', {
+            'marketwatch_pulse': 'https://feeds.content.dowjones.io/public/rss/mw_marketpulse',
+            'investing_com': 'https://www.investing.com/rss/news.rss',
+            'reuters_business': 'http://feeds.reuters.com/reuters/businessNews',
+            'yahoo_finance_aapl': 'https://feeds.finance.yahoo.com/rss/2.0/headline?s=AAPL&region=US&lang=en-US',
+            'cnbc_markets': 'https://www.cnbc.com/id/15839135/device/rss/rss.html',
+            'seeking_alpha': 'https://seekingalpha.com/feed.xml',
+            'bloomberg': 'https://feeds.bloomberg.com/markets/news.rss',
+            'marketwatch': 'https://www.marketwatch.com/rss/topstories',
+            'finviz': 'https://finviz.com/news.ashx?c=1',
+            'benzinga': 'https://www.benzinga.com/rss/benzinga'
+        })
+        
+        # Configurazioni di rate limiting
+        self.update_interval = max(news_config.get('update_interval', 600), 
+                                 news_config.get('min_update_interval', 300))  # Min 5 minuti
+        self.user_agent = news_config.get('user_agent', 
+                                        'StockAI-NewsBot/2.0 (+https://github.com/risik01/stock-ai)')
+        self.request_timeout = news_config.get('request_timeout', 30)
+        self.max_retries = news_config.get('max_retries', 3)
+        self.etag_cache_enabled = news_config.get('etag_cache', True)
+        
+        # Cache per evitare duplicati e ETag
         self.processed_articles = set()
         self.news_cache = []
+        self.etag_cache = {}
+        self.last_modified_cache = {}
+        self.last_fetch_time = {}
+        self.cache_file = '../data/rss_cache.json'
+        
+        # Carica cache persistente
+        self._load_cache()
+        
+        # Rate limiting warning
+        if self.update_interval < 300:
+            self.logger.warning(
+                f"⚠️  ATTENZIONE: Intervallo di aggiornamento {self.update_interval}s < 5 minuti "
+                "potrebbe causare blocchi dai server RSS! Raccomandato: >= 300s"
+            )
         
         # Simboli da monitorare
         self.monitored_symbols = self.config.get('data', {}).get('symbols', 
@@ -93,6 +121,51 @@ class NewsRSSCollector:
         }
         
         self.logger.info("NewsRSSCollector inizializzato con successo")
+        self.logger.info(f"Rate limiting: {self.update_interval}s tra aggiornamenti")
+        self.logger.info(f"Feed RSS configurati: {len(self.rss_feeds)}")
+    
+    def _load_cache(self):
+        """Carica cache persistente ETag e Last-Modified"""
+        try:
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, 'r') as f:
+                    cache_data = json.load(f)
+                    self.etag_cache = cache_data.get('etags', {})
+                    self.last_modified_cache = cache_data.get('last_modified', {})
+                    self.last_fetch_time = cache_data.get('last_fetch', {})
+                    self.logger.info(f"Cache caricata: {len(self.etag_cache)} ETags")
+        except Exception as e:
+            self.logger.warning(f"Errore caricamento cache: {e}")
+            self.etag_cache = {}
+            self.last_modified_cache = {}
+            self.last_fetch_time = {}
+    
+    def _save_cache(self):
+        """Salva cache persistente"""
+        try:
+            os.makedirs(os.path.dirname(self.cache_file), exist_ok=True)
+            cache_data = {
+                'etags': self.etag_cache,
+                'last_modified': self.last_modified_cache,
+                'last_fetch': self.last_fetch_time,
+                'saved_at': datetime.now().isoformat()
+            }
+            with open(self.cache_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+        except Exception as e:
+            self.logger.error(f"Errore salvataggio cache: {e}")
+    
+    def _should_fetch_feed(self, feed_name: str) -> bool:
+        """Controlla se il feed deve essere aggiornato (rate limiting)"""
+        last_fetch = self.last_fetch_time.get(feed_name, 0)
+        time_since_fetch = time.time() - last_fetch
+        
+        if time_since_fetch < self.update_interval:
+            remaining = self.update_interval - time_since_fetch
+            self.logger.debug(f"Feed {feed_name}: rate limit attivo, {remaining:.0f}s rimanenti")
+            return False
+        
+        return True
     
     def _load_config(self, config_path: str) -> Dict:
         """Carica configurazione"""
@@ -107,77 +180,129 @@ class NewsRSSCollector:
             return {}
     
     def fetch_rss_feed(self, feed_name: str, url: str) -> List[NewsArticle]:
-        """Raccoglie articoli da un singolo RSS feed"""
+        """Raccoglie articoli da un singolo RSS feed con ETag e rate limiting"""
         try:
+            # Controllo rate limiting
+            if not self._should_fetch_feed(feed_name):
+                return []
+            
             self.logger.debug(f"Fetching RSS feed: {feed_name}")
             
-            # Headers per simulare browser
+            # Headers personalizzati con User-Agent e cache
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': self.user_agent,
+                'Accept': 'application/rss+xml, application/xml, text/xml',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive'
             }
             
-            # Fetch feed con timeout
-            response = requests.get(url, headers=headers, timeout=30)
-            response.raise_for_status()
+            # Aggiungi ETag e Last-Modified se disponibili
+            if self.etag_cache_enabled:
+                if feed_name in self.etag_cache:
+                    headers['If-None-Match'] = self.etag_cache[feed_name]
+                if feed_name in self.last_modified_cache:
+                    headers['If-Modified-Since'] = self.last_modified_cache[feed_name]
             
-            # Parse feed
+            # Fetch feed con timeout e retry
+            response = None
+            for attempt in range(self.max_retries):
+                try:
+                    response = requests.get(url, headers=headers, timeout=self.request_timeout)
+                    
+                    # Aggiorna ultimo fetch time
+                    self.last_fetch_time[feed_name] = time.time()
+                    
+                    # Gestione 304 Not Modified
+                    if response.status_code == 304:
+                        self.logger.debug(f"Feed {feed_name}: nessun aggiornamento (304)")
+                        return []
+                    
+                    # Gestione errori HTTP
+                    if response.status_code >= 400:
+                        if response.status_code == 429:
+                            self.logger.warning(f"Rate limit per {feed_name}: {response.status_code}")
+                            # Aumenta l'intervallo per questo feed
+                            self.last_fetch_time[feed_name] = time.time() + (self.update_interval * 2)
+                        else:
+                            self.logger.error(f"Errore HTTP per {feed_name}: {response.status_code}")
+                        return []
+                    
+                    # Salva ETag e Last-Modified
+                    if self.etag_cache_enabled:
+                        if 'etag' in response.headers:
+                            self.etag_cache[feed_name] = response.headers['etag']
+                        if 'last-modified' in response.headers:
+                            self.last_modified_cache[feed_name] = response.headers['last-modified']
+                    
+                    break
+                    
+                except requests.exceptions.Timeout:
+                    self.logger.warning(f"Timeout per {feed_name} (tentativo {attempt + 1})")
+                    if attempt == self.max_retries - 1:
+                        return []
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    
+                except requests.exceptions.RequestException as e:
+                    self.logger.error(f"Errore network per {feed_name}: {str(e)}")
+                    return []
+            
+            if not response:
+                return []
+            
+            # Parse feed RSS
             feed = feedparser.parse(response.content)
             
-            if feed.bozo:
+            if feed.bozo and hasattr(feed, 'bozo_exception'):
                 self.logger.warning(f"Feed malformato per {feed_name}: {feed.bozo_exception}")
-            
+                
             articles = []
-            
             for entry in feed.entries:
                 try:
-                    # Estrai data pubblicazione
-                    if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                        published = datetime(*entry.published_parsed[:6])
-                    elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                        published = datetime(*entry.updated_parsed[:6])
-                    else:
-                        published = datetime.now()
+                    # Estrai informazioni articolo
+                    title = entry.get('title', 'No Title')
+                    summary = entry.get('summary', entry.get('description', ''))
+                    url = entry.get('link', '')
                     
-                    # Estrai contenuto
-                    title = getattr(entry, 'title', 'No Title')
-                    summary = getattr(entry, 'summary', getattr(entry, 'description', ''))
-                    url = getattr(entry, 'link', '')
+                    # Parse data pubblicazione
+                    published = self._parse_date(entry.get('published', ''))
+                    if not published:
+                        published = datetime.now()
                     
                     # Pulisci HTML dal summary
                     summary = self._clean_html(summary)
                     
-                    # Cerca simboli menzionati
+                    # Estrai simboli menzionati
                     symbols = self._extract_symbols(title + ' ' + summary)
                     
-                    # Crea articolo solo se ha simboli rilevanti o keywords finanziarie
-                    if symbols or self._has_financial_content(title + ' ' + summary):
-                        article = NewsArticle(
-                            title=title,
-                            summary=summary,
-                            url=url,
-                            published=published,
-                            source=feed_name,
-                            symbols=symbols
-                        )
+                    # Crea oggetto articolo (accetta tutti gli articoli RSS finanziari)
+                    article = NewsArticle(
+                        title=title,
+                        summary=summary,
+                        url=url,
+                        published=published,
+                        source=feed_name,
+                        symbols=symbols
+                    )
+                    
+                    # Evita duplicati
+                    article_hash = self._get_article_hash(article)
+                    if article_hash not in self.processed_articles:
+                        self.processed_articles.add(article_hash)
+                        articles.append(article)
                         
-                        # Evita duplicati
-                        article_id = f"{title}_{url}"
-                        if article_id not in self.processed_articles:
-                            articles.append(article)
-                            self.processed_articles.add(article_id)
-                
                 except Exception as e:
-                    self.logger.warning(f"Errore processing entry da {feed_name}: {e}")
+                    self.logger.warning(f"Errore parsing articolo da {feed_name}: {e}")
                     continue
+            
+            # Salva cache dopo fetch riuscito
+            if self.etag_cache_enabled:
+                self._save_cache()
             
             self.logger.info(f"Raccolti {len(articles)} articoli da {feed_name}")
             return articles
             
-        except requests.RequestException as e:
-            self.logger.error(f"Errore network per {feed_name}: {e}")
-            return []
         except Exception as e:
-            self.logger.error(f"Errore generico per {feed_name}: {e}")
+            self.logger.error(f"Errore generale per feed {feed_name}: {str(e)}")
             return []
     
     def _clean_html(self, text: str) -> str:
@@ -232,9 +357,57 @@ class NewsRSSCollector:
         
         return symbols
     
+    def _parse_date(self, date_str: str) -> Optional[datetime]:
+        """Parse data da string RSS"""
+        if not date_str:
+            return None
+        
+        try:
+            # Prova vari formati
+            from email.utils import parsedate_to_datetime
+            result = parsedate_to_datetime(date_str)
+            # Converte a datetime naive (rimuove timezone info)
+            if result.tzinfo is not None:
+                result = result.replace(tzinfo=None)
+            return result
+        except:
+            try:
+                # Formato ISO
+                result = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                # Converte a datetime naive
+                if result.tzinfo is not None:
+                    result = result.replace(tzinfo=None)
+                return result
+            except:
+                # Altri formati comuni
+                formats = [
+                    '%Y-%m-%d %H:%M:%S',
+                    '%Y-%m-%dT%H:%M:%S',
+                    '%a, %d %b %Y %H:%M:%S %Z',
+                    '%a, %d %b %Y %H:%M:%S',
+                    '%Y-%m-%d'
+                ]
+                for fmt in formats:
+                    try:
+                        return datetime.strptime(date_str, fmt)
+                    except:
+                        continue
+                return None
+    
+    def _get_article_hash(self, article: NewsArticle) -> str:
+        """Genera hash univoco per articolo"""
+        content = f"{article.title}_{article.url}_{article.published.isoformat()}"
+        return hashlib.md5(content.encode()).hexdigest()
+    
     def _has_financial_content(self, text: str) -> bool:
-        """Verifica se il testo contiene contenuto finanziario rilevante"""
+        """Controlla se il testo ha contenuto finanziario rilevante"""
         text_lower = text.lower()
+        financial_keywords = [
+            'earnings', 'revenue', 'profit', 'stock', 'shares', 'market',
+            'trading', 'investment', 'financial', 'economy', 'economic',
+            'wall street', 'nasdaq', 'dow jones', 's&p', 'fed', 'federal reserve'
+        ]
+        return any(keyword in text_lower for keyword in financial_keywords)
         
         financial_terms = [
             'stock', 'shares', 'earnings', 'revenue', 'profit', 'loss',

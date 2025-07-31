@@ -66,8 +66,10 @@ class NewsBasedTradingAI:
         self.sentiment_analyzer = NewsSentimentAnalyzer()
         
         # Portfolio virtuale per simulazione
+        initial_capital = self.config.get('trading', {}).get('initial_capital', 10000)
         self.virtual_portfolio = {
-            'cash': self.config.get('trading', {}).get('initial_capital', 100000),
+            'cash': initial_capital,
+            'initial_cash': initial_capital,  # Traccia valore iniziale
             'positions': {},
             'trades': [],
             'performance': []
@@ -78,6 +80,7 @@ class NewsBasedTradingAI:
         self.last_news_check = datetime.now() - timedelta(hours=1)
         self.sentiment_history = {}  # Storico sentiment per simbolo
         self.alert_history = []
+        self.symbol_data = {}  # Dati correnti per simbolo (sentiment, news, etc.)
         
         # Configurazione trading
         self.trading_config = {
@@ -456,9 +459,32 @@ class NewsBasedTradingAI:
         
         if not very_recent_news:
             self.logger.info("Nessuna notizia fresca trovata")
-            return {'status': 'no_fresh_news', 'news_count': len(fresh_news)}
+            return {
+                'status': 'no_fresh_news', 
+                'news_count': len(fresh_news),
+                'portfolio_status': self.get_portfolio_status(),
+                'fresh_news_count': 0,
+                'signals_generated': 0,
+                'trades_executed': 0,
+                'alerts_generated': 0
+            }
         
         self.logger.info(f"Trovate {len(very_recent_news)} notizie fresche")
+        
+        # Aggiorna symbol_data con notizie e sentiment
+        for symbol in self.monitored_symbols:
+            symbol_news = [n for n in very_recent_news if symbol in n.symbols]
+            if symbol_news:
+                # Calcola sentiment medio per il simbolo
+                sentiments = [n.sentiment for n in symbol_news if n.sentiment is not None]
+                avg_sentiment = sum(sentiments) / len(sentiments) if sentiments else 0.0
+                
+                self.symbol_data[symbol] = {
+                    'sentiment': avg_sentiment,
+                    'recent_news': symbol_news,
+                    'last_update': datetime.now(),
+                    'news_count': len(symbol_news)
+                }
         
         # Genera segnali di trading
         trading_signals = self.sentiment_analyzer.generate_trading_signals(
@@ -543,6 +569,51 @@ class NewsBasedTradingAI:
         """Ferma il trading automatizzato"""
         self.is_running = False
         self.logger.info("Trading automatizzato fermato")
+    
+    def get_active_alerts(self) -> List[Dict]:
+        """Ottiene lista degli alert attivi"""
+        alerts = []
+        
+        # Controlla sentiment estremi
+        for symbol in self.monitored_symbols:
+            if symbol in self.symbol_data:
+                sentiment = self.symbol_data[symbol]['sentiment']
+                last_update = self.symbol_data[symbol]['last_update']
+                
+                # Alert per sentiment estremi
+                if sentiment > 0.7:
+                    alerts.append({
+                        'symbol': symbol,
+                        'type': 'sentiment_extreme',
+                        'message': f"Sentiment molto positivo: {sentiment:.2f}",
+                        'severity': 'high',
+                        'timestamp': last_update
+                    })
+                elif sentiment < -0.7:
+                    alerts.append({
+                        'symbol': symbol,
+                        'type': 'sentiment_extreme',
+                        'message': f"Sentiment molto negativo: {sentiment:.2f}",
+                        'severity': 'high',
+                        'timestamp': last_update
+                    })
+                
+                # Alert per cambiamenti recenti
+                news_count = len(self.symbol_data[symbol].get('recent_news', []))
+                if news_count > 5:
+                    alerts.append({
+                        'symbol': symbol,
+                        'type': 'news_volume',
+                        'message': f"Elevato volume notizie: {news_count} articoli",
+                        'severity': 'medium',
+                        'timestamp': last_update
+                    })
+        
+        # Ordina per severità e timestamp
+        severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+        alerts.sort(key=lambda x: (severity_order.get(x['severity'], 3), x['timestamp']), reverse=True)
+        
+        return alerts
     
     def export_trading_report(self, filename: str = None) -> str:
         """Esporta report completo del trading"""
