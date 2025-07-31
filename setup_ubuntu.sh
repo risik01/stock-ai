@@ -15,27 +15,6 @@ fi
 
 echo "✅ Sistema Ubuntu rilevato"
 
-# 1. AGGIORNAMENTO SISTEMA
-echo "📦 Aggiornamento sistema Ubuntu..."
-sudo apt update && sudo apt upgrade -y
-
-#!/bin/bash
-# Setup script per Ubuntu - Trading AI System
-# Installa e configura sistema di trading automatico
-
-set -e  # Exit on error
-
-echo "🚀 SETUP TRADING AI SYSTEM SU UBUNTU"
-echo "======================================"
-
-# Verifica Ubuntu
-if [[ ! -f /etc/lsb-release ]] || ! grep -q "Ubuntu" /etc/lsb-release; then
-    echo "❌ Questo script è per Ubuntu. Sistema non supportato."
-    exit 1
-fi
-
-echo "✅ Sistema Ubuntu rilevato"
-
 # Verifica di essere nella directory corretta
 if [[ ! -f "automated_trading_system.py" ]]; then
     echo "❌ File automated_trading_system.py non trovato!"
@@ -55,23 +34,35 @@ sudo apt update && sudo apt upgrade -y
 
 # 2. INSTALLAZIONE DIPENDENZE
 echo "📦 Installazione dipendenze di sistema..."
-sudo apt install -y 
-    python3 
-    python3-pip 
-    python3-venv 
-    git 
-    curl 
-    wget 
-    htop 
-    screen 
-    build-essential 
-    python3-dev 
-    pkg-config 
-    libfreetype6-dev 
-    libpng-dev 
-    libjpeg-dev 
-    liblapack-dev 
-    libblas-dev 
+sudo apt install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    git \
+    curl \
+    wget \
+    htop \
+    tree \
+    unzip \
+    software-properties-common \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libjpeg-dev \
+    liblapack-dev \
+    libblas-dev \
     gfortran
 
 # 3. SETUP AMBIENTE PYTHON
@@ -98,10 +89,13 @@ mkdir -p backups
 # 6. CONFIGURAZIONE
 echo "⚙️ Setup configurazione..."
 
-# Copia configurazione di produzione
-cp config/production_settings.json config/settings.json
-
-echo "✅ Configurazione copiata in config/settings.json"
+# Copia configurazione di produzione se non esiste già settings.json
+if [[ ! -f "config/settings.json" ]]; then
+    cp config/production_settings.json config/settings.json
+    echo "✅ Configurazione copiata in config/settings.json"
+else
+    echo "ℹ️  File config/settings.json già esistente, non sovrascritto"
+fi
 
 # 7. PERMESSI
 echo "🔐 Impostazione permessi..."
@@ -128,10 +122,10 @@ After=network.target
 Type=simple
 User=$CURRENT_USER
 WorkingDirectory=$CURRENT_DIR
-Environment=PATH=$CURRENT_DIR/.venv/bin
+Environment=PATH=$CURRENT_DIR/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=$CURRENT_DIR/.venv/bin/python $CURRENT_DIR/automated_trading_system.py
 Restart=always
-RestartSec=10
+RestartSec=30
 
 [Install]
 WantedBy=multi-user.target
@@ -145,87 +139,7 @@ EOF
     echo "   Logs: sudo journalctl -u trading-ai -f"
 fi
 
-# 3. VERIFICA DIRECTORY
-echo "� Verifica directory corrente..."
-if [[ ! -f "automated_trading_system.py" ]]; then
-    echo "❌ File non trovato nella directory corrente"
-    echo "💡 Assicurati di essere nella directory stock-ai"
-    exit 1
-fi
-
-echo "✅ Directory corretta confermata"
-
-# 4. SETUP AMBIENTE PYTHON
-echo "🐍 Setup ambiente Python virtuale..."
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Aggiorna pip
-pip install --upgrade pip wheel setuptools
-
-# 5. INSTALLAZIONE DIPENDENZE PYTHON
-echo "📦 Installazione dipendenze Python..."
-pip install -r requirements.txt
-
-# Dipendenze aggiuntive per produzione
-pip install schedule psutil
-
-# 6. CREAZIONE DIRECTORY
-echo "📁 Creazione directory necessarie..."
-mkdir -p logs
-mkdir -p data
-mkdir -p config
-mkdir -p backups
-
-# 7. CONFIGURAZIONE
-echo "⚙️ Setup configurazione..."
-
-# Copia configurazione di produzione
-cp config/production_settings.json config/settings.json
-
-# 8. PERMESSI
-echo "🔐 Impostazione permessi..."
-chmod +x automated_trading_system.py
-chmod +x setup_ubuntu.sh
-
-# 9. SERVIZIO SYSTEMD (opzionale)
-echo "🔧 Vuoi installare il servizio systemd per avvio automatico? (y/N)"
-read -r install_service
-
-if [[ $install_service =~ ^[Yy]$ ]]; then
-    echo "📝 Creazione servizio systemd..."
-    
-    SERVICE_FILE="/etc/systemd/system/trading-ai.service"
-    CURRENT_USER=$(whoami)
-    CURRENT_DIR=$(pwd)
-    
-    sudo tee $SERVICE_FILE > /dev/null <<EOF
-[Unit]
-Description=Trading AI System
-After=network.target
-
-[Service]
-Type=simple
-User=$CURRENT_USER
-WorkingDirectory=$CURRENT_DIR
-Environment=PATH=$CURRENT_DIR/.venv/bin
-ExecStart=$CURRENT_DIR/.venv/bin/python $CURRENT_DIR/automated_trading_system.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    sudo systemctl daemon-reload
-    sudo systemctl enable trading-ai
-    
-    echo "✅ Servizio trading-ai installato"
-    echo "   Usa: sudo systemctl start trading-ai"
-    echo "   Logs: sudo journalctl -u trading-ai -f"
-fi
-
-# 10. SCRIPT DI CONTROLLO
+# 9. SCRIPT DI CONTROLLO
 echo "📜 Creazione script di controllo..."
 
 cat > trading_control.sh << 'EOF'
@@ -320,7 +234,7 @@ chmod +x trading_control.sh
 
 echo "✅ Script di controllo creato"
 
-# 9. TEST SISTEMA
+# 10. TEST SISTEMA
 echo "🧪 Test componenti sistema..."
 source .venv/bin/activate
 
@@ -342,13 +256,12 @@ import os
 # Setup paths corretti
 current_dir = os.getcwd()
 sys.path.insert(0, os.path.join(current_dir, 'src'))
-sys.path.insert(0, os.path.join(current_dir, 'trading-new'))
 sys.path.insert(0, current_dir)
 
 print('📁 Directory corrente:', current_dir)
 
 # Test struttura directory
-required_dirs = ['src', 'trading-new', 'config', 'data']
+required_dirs = ['src', 'config', 'data']
 missing_dirs = []
 for d in required_dirs:
     if not os.path.exists(d):
@@ -360,13 +273,7 @@ if missing_dirs:
 
 print('✅ Struttura directory OK')
 
-# Test import moduli
-try:
-    from trading_new.news_rss_collector import NewsRSSCollector
-    print('✅ NewsRSSCollector import OK')
-except ImportError as e:
-    print(f'⚠️  NewsRSSCollector import warning: {e}')
-
+# Test import moduli principali
 try:
     from src.data_collector import DataCollector
     print('✅ DataCollector import OK')
@@ -442,7 +349,7 @@ echo "📈 ULTIMA PERFORMANCE:"
 LAST_REPORT=$(find logs -name "performance_report_*.json" 2>/dev/null | sort | tail -1)
 if [[ -f "$LAST_REPORT" ]]; then
     echo "File: $(basename $LAST_REPORT)"
-    python -c "
+    python3 -c "
 import json
 try:
     with open('$LAST_REPORT', 'r') as f:
@@ -497,38 +404,6 @@ EOF
 
 chmod +x backup_data.sh
 
-echo
-echo "🎉 SETUP COMPLETATO!"
-echo "==================="
-echo
-echo "📋 COMANDI DISPONIBILI:"
-echo "  ./trading_control.sh start    - Avvia sistema"
-echo "  ./trading_control.sh stop     - Ferma sistema"
-echo "  ./trading_control.sh status   - Stato sistema"
-echo "  ./trading_control.sh logs     - Visualizza log"
-echo "  ./monitor_system.sh          - Monitor completo"
-echo "  ./backup_data.sh             - Backup dati"
-echo
-echo "🚀 AVVIO RAPIDO:"
-echo "  1. ./trading_control.sh start"
-echo "  2. ./trading_control.sh logs  (in altro terminale)"
-echo
-echo "⚙️ CONFIGURAZIONE:"
-echo "  - Budget: €1000 (config/settings.json)"
-echo "  - Simboli: AAPL, GOOGL, MSFT, TSLA, AMZN, META, NVDA"
-echo "  - News AI: Abilitato con 10 RSS feeds"
-echo "  - RL Agent: Abilitato per decisioni automatiche"
-echo
-echo "📊 MONITORING:"
-echo "  - Logs: logs/"
-echo "  - Performance: logs/performance_report_*.json"
-echo "  - Health checks ogni 30 minuti"
-echo
-echo "🔒 SICUREZZA:"
-echo "  - Max loss giornaliero: 5%"
-echo "  - Max trades/giorno: 10"
-echo "  - Emergency stop attivato"
-echo
 # 15. SUMMARY FINALE COMPLETO
 echo
 echo "🎯 ========================================="
@@ -552,7 +427,7 @@ echo "🛠️  UTILITY AGGIUNTIVE:"
 echo "======================="
 echo "  ./monitor_system.sh             # 📊 Monitor sistema completo"
 echo "  ./backup_data.sh                # 💾 Backup automatico dati"
-echo "  nano production_settings.json   # ⚙️  Modifica configurazioni"
+echo "  nano config/settings.json       # ⚙️  Modifica configurazioni"
 echo "  nano .env                       # 🔑 Configura API keys"
 echo
 echo "📊 DASHBOARD E MONITORING:"
@@ -566,9 +441,9 @@ echo "🔐 SICUREZZA E RISK MANAGEMENT:"
 echo "==============================="
 echo "  ✅ Stop Loss giornaliero: 5% del portfolio"
 echo "  ✅ Posizione massima: 15% per trade"
-echo "  ✅ Max trades giornalieri: 10"
+echo "  ✅ Max trades giornalieri: 8"
 echo "  ✅ Emergency stop automatico attivo"
-echo "  ✅ Controlli di health ogni 30 minuti"
+echo "  ✅ Controlli di health automatici"
 echo
 echo "📈 CONFIGURAZIONE TRADING:"
 echo "========================="
@@ -584,7 +459,7 @@ echo "  1️⃣  Verifica configurazione API keys:"
 echo "      nano .env  # Inserisci le tue API keys"
 echo
 echo "  2️⃣  Verifica budget e parametri:"
-echo "      nano production_settings.json"
+echo "      nano config/settings.json"
 echo
 echo "  3️⃣  Avvia sistema:"
 echo "      ./trading_control.sh start"
@@ -599,7 +474,7 @@ echo "📚 DOCUMENTAZIONE:"
 echo "=================="
 echo "  📖 Guida completa: README.md"
 echo "  🔧 Setup dettagliato: SETUP_GUIDE.md"
-echo "  📊 API Docs: config/trading_config.json"
+echo "  📊 Deployment Ubuntu: DEPLOYMENT_UBUNTU.md"
 echo
 echo "⚠️  IMPORTANTE - PRIMA DEL TRADING REALE:"
 echo "========================================"
@@ -612,11 +487,11 @@ echo
 echo "✨ Il sistema è ora pronto per trading automatico multi-day!"
 echo "💡 Ricorda: L'IA prende decisioni autonome ma il controllo finale è tuo"
 echo
-echo "🔥 BUON TRADING! �"
+echo "🔥 BUON TRADING! 🔥"
 echo
 
 # Attiva ambiente per utente
-echo "�🔧 Per attivare manualmente l'ambiente Python:"
+echo "🔧 Per attivare manualmente l'ambiente Python:"
 echo "   source .venv/bin/activate"
 echo
 echo "✅ Setup Ubuntu Trading AI System completato con successo!"
