@@ -18,8 +18,10 @@ import schedule
 from pathlib import Path
 
 # Aggiungi path per importazioni
-sys.path.append(os.path.join(os.path.dirname(__file__)))
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(current_dir, 'src'))
+sys.path.insert(0, os.path.join(current_dir, 'trading-new'))
+sys.path.insert(0, current_dir)
 
 # Import moduli del trading system
 try:
@@ -32,8 +34,21 @@ try:
     from trading_new.news_trading_ai import NewsTradingAI
 except ImportError as e:
     print(f"❌ Errore importazione moduli: {e}")
-    print("Assicurati che tutti i moduli siano nel path corretto")
-    sys.exit(1)
+    print("🔧 Tentativo import alternativi...")
+    try:
+        # Fallback imports
+        sys.path.append('.')
+        from portfolio import Portfolio
+        from data_collector import DataCollector
+        from news_rss_collector import NewsRSSCollector
+        print("✅ Import alternativi riusciti")
+    except ImportError as e2:
+        print(f"❌ Anche import alternativi falliti: {e2}")
+        print("📁 Struttura directory corrente:")
+        for item in os.listdir('.'):
+            print(f"  {item}")
+        print("\n💡 Assicurati che tutti i moduli siano presenti nella directory corretta")
+        sys.exit(1)
 
 class AutomatedTradingSystem:
     """Sistema di trading automatico per produzione"""

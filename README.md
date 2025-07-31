@@ -1,53 +1,60 @@
-# 🚀 Stock AI v2.0.0 - Advanced Trading System
+# 🚀 Stock AI v3.0.0 - Production Trading System
 
 ![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-Production%20Ready-success.svg)
+![Trading](https://img.shields.io/badge/trading-Live%20Ready-brightgreen.svg)
+![AI](https://img.shields.io/badge/AI-Multi%20Model-purple.svg)
 
-**Sistema avanzato di trading automatizzato con Intelligenza Artificiale, Reinforcement Learning e analisi finanziarie professionali.**
+**🎯 Sistema di trading automatizzato con AI multi-componente per trading reale con budget di €1000. Integra Reinforcement Learning, analisi tecnica e sentiment analysis news per decisioni di trading intelligenti.**
 
-## 🌟 Caratteristiche Principali
+---
 
-### 🤖 **Intelligenza Artificiale Avanzata**
-- **4 Algoritmi RL**: PPO, SAC, TD3, A2C per strategie ottimali
-- **Hyperparameter Optimization**: Ottimizzazione automatica con Optuna
-- **Ensemble Learning**: Combinazione di modelli per performance superiori
-- **Adaptive Learning**: Apprendimento continuo dai dati di mercato
+## 🌟 **NUOVO: PRODUCTION TRADING SYSTEM**
 
-### 📊 **Analytics Professionali**
-- **44+ Metriche Finanziarie**: Sharpe, Sortino, Calmar, VaR, CVaR
-- **Monte Carlo Analysis**: Simulazioni stocastiche per risk assessment
-- **Stress Testing**: Analisi di scenario e resilienza del portafoglio
-- **Performance Attribution**: Analisi dettagliata delle performance
+### 💰 **Ready for Real Trading**
+- **Budget: €1000** configurazione ottimizzata
+- **Risk Management**: Stop loss 3%, max daily loss 5%
+- **AI Ensemble**: 3 modelli combinati per decisioni ottimali
+- **Ubuntu Deployment**: Setup automatico per server Linux
+- **24/7 Operation**: Trading continuo con monitoring automatico
 
-### 🌐 **Interfaccia Web Moderna**
-- **Dashboard Interattiva**: Bootstrap 5 + Chart.js responsive
-- **Real-time Updates**: WebSocket per aggiornamenti istantanei
-- **API REST**: Endpoint completi per integrazione
-- **Mobile-First**: Design ottimizzato per tutti i dispositivi
+### 🤖 **AI Multi-Component System**
+- **RL Agent (40%)**: Deep Q-Network con apprendimento continuo
+- **Technical Analysis (35%)**: RSI, MACD, EMA, SMA, Bollinger Bands
+- **News Sentiment (25%)**: 10 RSS feeds con analisi sentiment real-time
+- **Ensemble Decision**: Voto pesato con confidence threshold 65%
 
-### 📰 **News Trading AI - NUOVO!**
-- **RSS Collection**: Raccolta automatica da 10+ fonti finanziarie
-- **Sentiment Analysis**: Analisi ibrida (TextBlob + VADER + Financial Dictionary)
-- **News-based Trading**: Segnali BUY/SELL basati su sentiment notizie
-- **Breaking News Detection**: Rilevamento notizie dell'ultima ora
-- **Multi-interface**: CLI avanzata + Web Dashboard responsive
+### 📰 **Advanced News Trading**
+- **Real-time RSS**: 10+ fonti finanziarie (Bloomberg, Reuters, CNBC, etc.)
+- **Sentiment AI**: Analisi ibrida TextBlob + VADER + Financial Dictionary
+- **Breaking News**: Rilevamento notizie dell'ultima ora
+- **Rate Limiting**: Rispetto server RSS con ETag caching
+- **News-based Signals**: Segnali BUY/SELL integrati con sentiment
 
-### 💼 **Gestione Portafoglio**
-- **Risk Management**: Controllo dinamico del rischio
-- **Position Sizing**: Calcolo ottimale delle posizioni
-- **Rebalancing**: Ribilanciamento automatico del portafoglio
-- **Performance Tracking**: Monitoraggio dettagliato delle performance
+### �️ **Enterprise-Grade Safety**
+- **Emergency Stop**: Blocco automatico se loss > 10%
+- **Daily Limits**: Max 8 trades/giorno, max 5% loss giornaliero
+- **Position Sizing**: Max 15% portfolio per singola posizione
+- **Health Monitoring**: Controlli automatici ogni 30 minuti
+- **Auto Backup**: Salvataggio dati e configurazioni
 
-## 🛠️ Installazione
+### 🖥️ **Ubuntu Production Deployment**
+- **One-Command Setup**: Script automatico per Ubuntu
+- **Systemd Integration**: Servizio sistema per avvio automatico
+- **Complete Monitoring**: Dashboard sistema con metriche real-time
+- **Log Management**: Rotating logs con performance tracking
+- **Remote Control**: Script di controllo per start/stop/status
 
-### Prerequisiti
-- **Python 3.12+**
-- **Git**
-- **Connessione Internet** (per dati di mercato)
+## 🚀 **Quick Start - Ubuntu Production**
 
-### 1. Clone del Repository
+### **Installazione Automatica**
 ```bash
+# Ubuntu 18.04+ (server o desktop)
+git clone https://github.com/risik01/stock-ai.git
+cd stock-ai
+chmod +x setup_ubuntu.sh
+./setup_ubuntu.sh
 git clone https://github.com/risik01/stock-ai.git
 cd stock-ai
 ```
