@@ -26,7 +26,7 @@ sys.path.insert(0, current_dir)
 # Import moduli del trading system
 try:
     from src.portfolio import Portfolio
-    from src.rl_agent import RLTradingAgent
+    from src.rl_agent import RLAgent
     from src.data_collector import DataCollector
     from src.strategy_engine import StrategyEngine
     from trading_new.news_rss_collector import NewsRSSCollector
@@ -119,15 +119,13 @@ class AutomatedTradingSystem:
         """Inizializza tutti i componenti del sistema"""
         try:
             # Portfolio Manager
-            self.portfolio = Portfolio(
-                initial_capital=self.config['trading']['initial_capital']
-            )
+            self.portfolio = Portfolio(config=self.config)
             
             # Data Collector
             self.data_collector = DataCollector(config_path=self.config_path)
             
             # RL Agent
-            self.rl_agent = RLTradingAgent(config_path=self.config_path)
+            self.rl_agent = RLAgent(config=self.config)
             
             # Strategy Engine
             self.strategy_engine = StrategyEngine(config_path=self.config_path)
