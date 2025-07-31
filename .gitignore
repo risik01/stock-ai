@@ -36,6 +36,18 @@ data/*.csv
 data/*.pkl
 logs/*.log
 
+# Trading AI specific ignores
+*.cache
+*_cache.json
+*.log
+logs/
+data/cache/
+data/backtest_results/
+data/performance_reports/
+data/news_trading_report_*.json
+data/test_results.json
+data/update_summary.json
+
 # Environment variables
 .env
 
