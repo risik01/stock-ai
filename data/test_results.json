@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-07-31T09:08:57.009834",
+  "summary": {
+    "total_tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "success_rate": 100.0
+  },
+  "categories": {
+    "file": {
+      "passed": 1,
+      "failed": 0
+    },
+    "dir": {
+      "passed": 1,
+      "failed": 0
+    },
+    "basic": {
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "detailed_results": {
+    "file_structure": true,
+    "dir_structure": true,
+    "basic_version": true,
+    "basic_system-status": true,
+    "basic_show-config": true,
+    "basic_help": true
+  }
+}
