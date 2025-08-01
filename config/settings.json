@@ -48,6 +48,12 @@
       "volume_spike": 2.0
     }
   },
+  "dashboard": {
+    "port": 5000,
+    "host": "0.0.0.0",
+    "auto_refresh": 30,
+    "debug": false
+  },
   "news_trading": {
     "enabled": true,
     "update_interval": 600,

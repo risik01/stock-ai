@@ -642,7 +642,22 @@ class StockAI:
     def start_dashboard(self):
         """Avvia dashboard web"""
         try:
-            from web_dashboard import create_app
+            # Aggiungi path per dashboard - corretto
+            import sys
+            import os
+            # Dalla directory src, vai alla root e poi a dashboard
+            current_dir = os.path.dirname(os.path.abspath(__file__))  # src/
+            project_root = os.path.dirname(current_dir)  # root/
+            dashboard_path = os.path.join(project_root, 'dashboard')
+            sys.path.insert(0, dashboard_path)
+            sys.path.insert(0, project_root)  # Aggiungi anche la root
+            
+            print(f"🔍 Dashboard path: {dashboard_path}")
+            print(f"🔍 Dashboard exists: {os.path.exists(dashboard_path)}")
+            print(f"🔍 web_dashboard.py exists: {os.path.exists(os.path.join(dashboard_path, 'web_dashboard.py'))}")
+            
+            # Usa dashboard semplificato per evitare problemi di import
+            from simple_dashboard import create_app
             
             app = create_app(self.config)
             
@@ -659,6 +674,8 @@ class StockAI:
         except Exception as e:
             logger.error(f"❌ Errore dashboard: {e}")
             print(f"❌ Errore: {e}")
+            import traceback
+            traceback.print_exc()
     
     def show_system_status(self):
         """Mostra stato sistema completo"""

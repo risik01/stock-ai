@@ -61,33 +61,33 @@ class StrategyEngine:
         
         try:
             # RSI
-            indicators['rsi'] = ta.momentum.RSIIndicator(data['close']).rsi().iloc[-1]
+            indicators['rsi'] = ta.momentum.RSIIndicator(data['Close']).rsi().iloc[-1]
             
             # MACD
-            macd = ta.trend.MACD(data['close'])
+            macd = ta.trend.MACD(data['Close'])
             indicators['macd'] = macd.macd().iloc[-1]
             indicators['macd_signal'] = macd.macd_signal().iloc[-1]
             indicators['macd_diff'] = macd.macd_diff().iloc[-1]
             
             # Bollinger Bands
-            bb = ta.volatility.BollingerBands(data['close'])
+            bb = ta.volatility.BollingerBands(data['Close'])
             indicators['bb_upper'] = bb.bollinger_hband().iloc[-1]
             indicators['bb_lower'] = bb.bollinger_lband().iloc[-1]
             indicators['bb_middle'] = bb.bollinger_mavg().iloc[-1]
             indicators['bb_width'] = (indicators['bb_upper'] - indicators['bb_lower']) / indicators['bb_middle']
             
             # Moving Averages
-            indicators['sma_20'] = data['close'].rolling(20).mean().iloc[-1]
-            indicators['sma_50'] = data['close'].rolling(50).mean().iloc[-1]
-            indicators['ema_12'] = data['close'].ewm(span=12).mean().iloc[-1]
-            indicators['ema_26'] = data['close'].ewm(span=26).mean().iloc[-1]
+            indicators['sma_20'] = data['Close'].rolling(20).mean().iloc[-1]
+            indicators['sma_50'] = data['Close'].rolling(50).mean().iloc[-1]
+            indicators['ema_12'] = data['Close'].ewm(span=12).mean().iloc[-1]
+            indicators['ema_26'] = data['Close'].ewm(span=26).mean().iloc[-1]
             
             # Prezzo corrente
-            indicators['current_price'] = data['close'].iloc[-1]
+            indicators['current_price'] = data['Close'].iloc[-1]
             
             # Volume
-            indicators['volume'] = data['volume'].iloc[-1]
-            indicators['volume_sma'] = data['volume'].rolling(20).mean().iloc[-1]
+            indicators['volume'] = data['Volume'].iloc[-1]
+            indicators['volume_sma'] = data['Volume'].rolling(20).mean().iloc[-1]
             
         except Exception as e:
             logger.error(f"Errore calcolo indicatori: {e}")

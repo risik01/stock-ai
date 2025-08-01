@@ -1,11 +1,14 @@
 #!/bin/bash
 # Script di controllo Trading AI System
+# Path corretto dalla cartella bin/
+
+cd "$(dirname "$0")/.." || exit 1  # Vai alla root del progetto
 
 case "$1" in
     start)
         echo "🚀 Avvio Trading AI System..."
         source .venv/bin/activate
-        nohup python3 automated_trading_system.py > logs/system.log 2>&1 &
+        nohup python3 src/automated_trading_system.py > logs/system.log 2>&1 &
         echo $! > trading_ai.pid
         echo "✅ Sistema avviato (PID: $(cat trading_ai.pid))"
         echo "📊 Per monitorare: ./trading_control.sh logs"

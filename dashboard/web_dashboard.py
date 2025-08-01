@@ -54,8 +54,23 @@ class TradingDashboard:
             logger.warning(f"⚠️ Errore caricamento portfolio: {e}")
         
         # Portfolio di default
+        import sys
+        import os
+        # Aggiungi path per importare portfolio da src
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        src_dir = os.path.join(os.path.dirname(current_dir), 'src')
+        sys.path.insert(0, src_dir)
+        
         from portfolio import Portfolio
-        return Portfolio()
+        default_config = {
+            'trading': {
+                'initial_capital': 10000,
+                'max_position_size': 0.2,
+                'stop_loss': 0.05,
+                'take_profit': 0.1
+            }
+        }
+        return Portfolio(config=default_config)
     
     def load_price_cache(self):
         """Carica cache prezzi"""

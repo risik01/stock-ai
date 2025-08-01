@@ -39,3 +39,6 @@ class TradingEnv(gym.Env):
 
     def render(self, mode='human'):
         print(f"Step {self.index}, Cash: {self.cash:.2f}, Shares: {self.shares}, Total: {self.cash + self.shares * self.prices[self.index]:.2f}")
+
+# Alias per compatibilità
+TradingEnvironment = TradingEnv

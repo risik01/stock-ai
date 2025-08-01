@@ -23,27 +23,32 @@ load_dotenv()
 
 # Aggiungi path per importazioni
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(current_dir, 'src'))
-sys.path.insert(0, os.path.join(current_dir, 'news'))
+project_root = os.path.dirname(current_dir)  # Torna alla root del progetto
+sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, 'src'))
+sys.path.insert(0, os.path.join(project_root, 'news'))
 sys.path.insert(0, current_dir)
 
 # Import moduli del trading system
 try:
-    from src.portfolio import Portfolio
-    from src.rl_agent import RLAgent
-    from src.data_collector import DataCollector
-    from src.strategy_engine import StrategyEngine
-    from news_rss_collector import NewsRSSCollector
-    from news_sentiment_analyzer import NewsSentimentAnalyzer
-    from news_based_trading_ai import NewsBasedTradingAI
+    from portfolio import Portfolio
+    from rl_agent import RLAgent
+    from data_collector import DataCollector
+    from strategy_engine import StrategyEngine
+    from news.news_rss_collector import NewsRSSCollector
+    from news.news_sentiment_analyzer import NewsSentimentAnalyzer
+    from news.news_based_trading_ai import NewsBasedTradingAI
 except ImportError as e:
     print(f"❌ Errore importazione moduli: {e}")
     print("🔧 Tentativo import alternativi...")
     try:
         # Fallback imports
         sys.path.append('.')
+        sys.path.append('..')
         from portfolio import Portfolio
         from data_collector import DataCollector
+        import sys
+        sys.path.insert(0, '../news')
         from news_rss_collector import NewsRSSCollector
         print("✅ Import alternativi riusciti")
     except ImportError as e2:
@@ -190,34 +195,88 @@ class AutomatedTradingSystem:
     def collect_and_analyze_news(self):
         """Raccoglie e analizza news finanziarie"""
         try:
-            self.logger.info("📰 Raccolta news...")
+            self.logger.info("📰 Avvio raccolta news finanziarie...")
             
             # Raccoglie news da RSS feeds
             articles = self.news_collector.collect_all_news()
             
             if not articles:
-                self.logger.info("📭 Nessuna nuova news trovata")
+                self.logger.info("📭 Nessuna nuova news trovata dai feed RSS")
                 return []
+            
+            self.logger.info(f"📄 Raccolti {len(articles)} articoli dai feed RSS")
+            
+            # Conta breaking news
+            breaking_count = sum(1 for a in articles if hasattr(a, 'is_breaking') and a.is_breaking)
+            if breaking_count > 0:
+                self.logger.info(f"🚨 Breaking news: {breaking_count} notizie dell'ultima ora")
             
             # Analizza sentiment
             analyzed_articles = []
-            for article in articles:
+            sentiment_errors = 0
+            
+            self.logger.info(f"🧠 Analisi sentiment su {len(articles)} articoli...")
+            
+            for i, article in enumerate(articles, 1):
                 try:
-                    # Analisi sentiment
-                    sentiment = self.sentiment_analyzer.analyze_sentiment(
-                        article.title + " " + article.summary
-                    )
+                    # Analisi sentiment (metodo corretto)
+                    if hasattr(self.sentiment_analyzer, 'analyze_article_sentiment'):
+                        sentiment = self.sentiment_analyzer.analyze_article_sentiment(article)
+                    else:
+                        # Fallback se il metodo non esiste
+                        sentiment = 0.0
+                        sentiment_errors += 1
+                    
                     article.sentiment = sentiment
                     
                     # Calcola importanza
-                    article.importance = self.sentiment_analyzer.calculate_importance(article)
+                    if hasattr(self.sentiment_analyzer, 'calculate_importance'):
+                        article.importance = self.sentiment_analyzer.calculate_importance(article)
+                    else:
+                        article.importance = 0.5  # default
                     
                     analyzed_articles.append(article)
                     
+                    # Log ogni 20 articoli per non intasare
+                    if i % 20 == 0:
+                        self.logger.debug(f"📊 Analizzati {i}/{len(articles)} articoli...")
+                    
                 except Exception as e:
-                    self.logger.warning(f"⚠️ Errore analisi articolo: {e}")
+                    sentiment_errors += 1
+                    self.logger.debug(f"⚠️ Errore analisi articolo {i}: {e}")
             
-            self.logger.info(f"📊 Analizzati {len(analyzed_articles)} articoli")
+            # Statistiche finali
+            valid_sentiments = [a.sentiment for a in analyzed_articles if hasattr(a, 'sentiment') and a.sentiment is not None]
+            
+            if valid_sentiments:
+                avg_sentiment = sum(valid_sentiments) / len(valid_sentiments)
+                positive_count = sum(1 for s in valid_sentiments if s > 0.1)
+                negative_count = sum(1 for s in valid_sentiments if s < -0.1)
+                neutral_count = len(valid_sentiments) - positive_count - negative_count
+                
+                self.logger.info(f"📊 Sentiment analizzati: {len(analyzed_articles)} articoli")
+                if sentiment_errors > 0:
+                    self.logger.warning(f"⚠️ Errori sentiment: {sentiment_errors}")
+                
+                self.logger.info(f"📈 Sentiment medio: {avg_sentiment:+.3f}")
+                self.logger.info(f"📊 Distribuzione: {positive_count} positivi, {neutral_count} neutrali, {negative_count} negativi")
+                
+                # Valutazione generale del mercato
+                if avg_sentiment > 0.2:
+                    market_mood = "🟢 MOLTO POSITIVO"
+                elif avg_sentiment > 0.05:
+                    market_mood = "🔵 POSITIVO"  
+                elif avg_sentiment > -0.05:
+                    market_mood = "⚪ NEUTRALE"
+                elif avg_sentiment > -0.2:
+                    market_mood = "🔴 NEGATIVO"
+                else:
+                    market_mood = "🔴 MOLTO NEGATIVO"
+                
+                self.logger.info(f"🌡️ Sentiment mercato: {market_mood}")
+            else:
+                self.logger.warning("⚠️ Nessun sentiment valido calcolato")
+            
             return analyzed_articles
             
         except Exception as e:
@@ -228,32 +287,61 @@ class AutomatedTradingSystem:
         """Prende decisioni di trading usando AI"""
         try:
             self.logger.info("🤖 Elaborazione decisioni AI...")
+            self.logger.info(f"📊 Analizzando {len(self.config['data']['symbols'])} simboli...")
             
             decisions = []
             
             for symbol in self.config['data']['symbols']:
                 if symbol not in market_data:
+                    self.logger.warning(f"⚠️ Dati mancanti per {symbol}, salto analisi")
                     continue
                 
                 try:
                     # Dati tecnici
                     price_data = market_data[symbol]
+                    current_price = float(price_data.iloc[-1]['Close'])
+                    
+                    self.logger.info(f"🔍 === ANALISI {symbol} (€{current_price:.2f}) ===")
                     
                     # Analisi tecnica
+                    self.logger.info(f"📈 Analisi tecnica per {symbol}...")
                     technical_signals = self.strategy_engine.analyze_symbol(symbol, price_data)
+                    tech_recommendation = technical_signals.get('recommendation', 'HOLD')
+                    tech_strength = technical_signals.get('strength', 0.0)
+                    
+                    self.logger.info(f"📊 Tecnica {symbol}: {tech_recommendation} (forza: {tech_strength:.2f})")
                     
                     # Analisi RL Agent
-                    rl_action = self.rl_agent.predict_action(symbol, price_data)
+                    self.logger.info(f"🧠 Consultando RL Agent per {symbol}...")
+                    rl_result = self.rl_agent.get_action({symbol: {'close': current_price}})
+                    rl_action = 0  # default hold
+                    if rl_result['type'] == 'buy':
+                        rl_action = 1
+                    elif rl_result['type'] == 'sell':
+                        rl_action = 2
+                    
+                    self.logger.info(f"🤖 RL Agent {symbol}: {rl_result['type'].upper()} (azione: {rl_action})")
                     
                     # News sentiment per il simbolo
-                    symbol_news = [a for a in news_articles if symbol in a.symbols]
+                    self.logger.info(f"📰 Analizzando sentiment news per {symbol}...")
+                    symbol_news = [a for a in news_articles if hasattr(a, 'symbols') and symbol in a.symbols]
                     news_sentiment = 0.0
+                    news_count = 0
+                    
                     if symbol_news:
-                        sentiments = [a.sentiment for a in symbol_news if a.sentiment is not None]
+                        sentiments = [a.sentiment for a in symbol_news if hasattr(a, 'sentiment') and a.sentiment is not None]
                         if sentiments:
                             news_sentiment = sum(sentiments) / len(sentiments)
+                            news_count = len(sentiments)
+                    
+                    if news_count > 0:
+                        sentiment_label = "POSITIVO" if news_sentiment > 0.1 else "NEGATIVO" if news_sentiment < -0.1 else "NEUTRALE"
+                        self.logger.info(f"📢 News {symbol}: {sentiment_label} ({news_sentiment:+.3f}) da {news_count} articoli")
+                    else:
+                        self.logger.info(f"📭 Nessuna news rilevante per {symbol}")
                     
                     # Decisione ensemble
+                    self.logger.info(f"⚖️ Combinando segnali per decisione finale {symbol}...")
                     decision = self._make_ensemble_decision(
                         symbol, technical_signals, rl_action, news_sentiment, price_data
                     )
@@ -262,13 +350,34 @@ class AutomatedTradingSystem:
                         decisions.append(decision)
                         self.stats['ai_decisions'] += 1
                         
-                        self.logger.info(
-                            f"🎯 Decisione {symbol}: {decision['action']} "
-                            f"(conf: {decision['confidence']:.2f})"
-                        )
+                        # Log dettagliato della decisione
+                        self.logger.info(f"✅ === DECISIONE {symbol}: {decision['action']} ===")
+                        self.logger.info(f"💡 Motivo: Tecnica({decision['technical_score']:+.2f}) + RL({decision['rl_score']:+.2f}) + News({decision['news_score']:+.2f}) = {decision['final_score']:+.2f}")
+                        self.logger.info(f"💰 Investimento: {decision['size']} azioni × €{decision['price']:.2f} = €{decision['size'] * decision['price']:.2f}")
+                        self.logger.info(f"🎯 Confidenza: {decision['confidence']:.1%}")
+                        
+                        # Spiegazione del ragionamento
+                        reasoning = []
+                        if abs(decision['technical_score']) > 0.1:
+                            reasoning.append(f"analisi tecnica {'favorevole' if decision['technical_score'] > 0 else 'sfavorevole'}")
+                        if abs(decision['rl_score']) > 0.1:
+                            reasoning.append(f"RL Agent suggerisce {'acquisto' if decision['rl_score'] > 0 else 'vendita'}")
+                        if abs(decision['news_score']) > 0.1:
+                            reasoning.append(f"sentiment news {'positivo' if decision['news_score'] > 0 else 'negativo'}")
+                        
+                        if reasoning:
+                            self.logger.info(f"📋 Fattori chiave: {', '.join(reasoning)}")
+                        
+                    else:
+                        self.logger.info(f"⏸️ {symbol}: Nessuna azione (confidenza insufficiente o segnali contrastanti)")
                 
                 except Exception as e:
                     self.logger.error(f"❌ Errore decisione {symbol}: {e}")
+            
+            if decisions:
+                self.logger.info(f"🎲 Decisioni finali: {len(decisions)} operazioni proposte")
+            else:
+                self.logger.info("🔕 Nessuna decisione di trading in questo ciclo")
             
             return decisions
             
@@ -300,6 +409,12 @@ class AutomatedTradingSystem:
             # Score news (normalizzato)
             news_score = max(-1.0, min(1.0, news_sentiment * 2))
             
+            # Log dettagli calcolo
+            self.logger.debug(f"🔢 Score individuali {symbol}:")
+            self.logger.debug(f"   📈 Tecnico: {technical_score:+.2f} (peso {weights['technical_analyzer']['weight']:.0%})")
+            self.logger.debug(f"   🧠 RL Agent: {rl_score:+.2f} (peso {weights['rl_agent']['weight']:.0%})")
+            self.logger.debug(f"   📰 News: {news_score:+.2f} (peso {weights['sentiment_analyzer']['weight']:.0%})")
+            
             # Calcolo finale pesato
             final_score = (
                 technical_score * weights['technical_analyzer']['weight'] +
@@ -311,21 +426,36 @@ class AutomatedTradingSystem:
             
             # Soglia minima di confidenza
             min_confidence = self.config['ai_trading']['model_confidence_threshold']
+            
+            self.logger.debug(f"🎯 Score finale {symbol}: {final_score:+.3f} (confidenza: {confidence:.3f}, soglia: {min_confidence})")
+            
             if confidence < min_confidence:
+                self.logger.info(f"⚠️ {symbol}: Confidenza troppo bassa ({confidence:.1%} < {min_confidence:.1%})")
                 return None
             
             # Determina azione
             action = None
-            if final_score > 0.3:
+            action_threshold = 0.3
+            
+            if final_score > action_threshold:
                 action = 'BUY'
-            elif final_score < -0.3:
+                self.logger.info(f"📈 {symbol}: Segnale ACQUISTO (score: {final_score:+.3f} > {action_threshold})")
+            elif final_score < -action_threshold:
                 action = 'SELL'
+                self.logger.info(f"📉 {symbol}: Segnale VENDITA (score: {final_score:+.3f} < -{action_threshold})")
             else:
+                self.logger.info(f"⏸️ {symbol}: Segnale NEUTRALE (score: {final_score:+.3f} tra ±{action_threshold})")
                 return None
             
             # Calcola size posizione
-            current_price = float(price_data.iloc[-1]['close'])
+            current_price = float(price_data.iloc[-1]['Close'])
             position_size = self._calculate_position_size(symbol, current_price, confidence)
+            
+            if position_size == 0:
+                self.logger.warning(f"💸 {symbol}: Posizione troppo piccola (€{current_price:.2f} × 0 = €0)")
+                return None
+            
+            self.logger.info(f"💰 {symbol}: Calcolata posizione di {position_size} azioni")
             
             return {
                 'symbol': symbol,
@@ -341,7 +471,7 @@ class AutomatedTradingSystem:
             }
             
         except Exception as e:
-            self.logger.error(f"❌ Errore ensemble decision: {e}")
+            self.logger.error(f"❌ Errore ensemble decision per {symbol}: {e}")
             return None
     
     def _calculate_position_size(self, symbol: str, price: float, confidence: float) -> float:
@@ -383,44 +513,98 @@ class AutomatedTradingSystem:
     
     def execute_trading_decisions(self, decisions: List[Dict]):
         """Esegue decisioni di trading"""
-        for decision in decisions:
+        if not decisions:
+            self.logger.info("📭 Nessuna decisione da eseguire")
+            return
+            
+        self.logger.info(f"🎬 Esecuzione di {len(decisions)} decisioni di trading...")
+        
+        for i, decision in enumerate(decisions, 1):
             try:
                 symbol = decision['symbol']
                 action = decision['action']
                 shares = decision['size']
                 price = decision['price']
+                total_value = shares * price
+                
+                self.logger.info(f"📋 === TRADE {i}/{len(decisions)}: {symbol} ===")
+                self.logger.info(f"🎯 Azione: {action} {shares} azioni a €{price:.2f}")
+                self.logger.info(f"💰 Valore operazione: €{total_value:.2f}")
                 
                 if shares == 0:
-                    self.logger.info(f"⏭️ Skip {symbol}: position size troppo piccola")
+                    self.logger.warning(f"⏭️ {symbol}: Saltato - position size troppo piccola")
                     continue
                 
                 # Verifica condizioni di sicurezza
+                self.logger.info(f"🛡️ Verifiche sicurezza per {symbol}...")
                 if not self._verify_trade_safety(decision):
-                    self.logger.warning(f"⚠️ Trade {symbol} bloccato per sicurezza")
+                    self.logger.warning(f"🚫 {symbol}: Trade bloccato per motivi di sicurezza")
                     continue
                 
+                # Mostra stato portafoglio pre-trade
+                cash_before = self.portfolio.get_available_cash()
+                portfolio_value_before = self.portfolio.get_total_value()
+                
+                self.logger.info(f"💼 Pre-trade: Cash €{cash_before:.2f}, Portfolio €{portfolio_value_before:.2f}")
+                
                 # Esegui trade
+                self.logger.info(f"⚡ Eseguendo {action} per {symbol}...")
                 success = False
+                
                 if action == 'BUY':
                     success = self.portfolio.buy_stock(symbol, shares, price)
+                    if success:
+                        self.logger.info(f"✅ ACQUISTO ESEGUITO: {shares} {symbol} a €{price:.2f}")
                 elif action == 'SELL':
                     success = self.portfolio.sell_stock(symbol, shares, price)
+                    if success:
+                        self.logger.info(f"✅ VENDITA ESEGUITA: {shares} {symbol} a €{price:.2f}")
                 
-                # Log risultato
+                # Risultato e statistiche
                 if success:
                     self.stats['total_trades'] += 1
                     if decision.get('news_score', 0) != 0:
                         self.stats['news_based_trades'] += 1
                     
-                    self.logger.info(
-                        f"✅ TRADE ESEGUITO: {action} {shares} {symbol} @ €{price:.2f} "
-                        f"(conf: {decision['confidence']:.2f})"
-                    )
+                    # Mostra stato portafoglio post-trade
+                    cash_after = self.portfolio.get_available_cash()
+                    portfolio_value_after = self.portfolio.get_total_value()
+                    
+                    self.logger.info(f"💼 Post-trade: Cash €{cash_after:.2f}, Portfolio €{portfolio_value_after:.2f}")
+                    self.logger.info(f"📊 Variazione cash: €{cash_after - cash_before:+.2f}")
+                    
+                    # Motivazione del trade
+                    motivation = []
+                    if abs(decision.get('technical_score', 0)) > 0.1:
+                        motivation.append(f"tecnica ({decision['technical_score']:+.2f})")
+                    if abs(decision.get('rl_score', 0)) > 0.1:
+                        motivation.append(f"RL ({decision['rl_score']:+.2f})")
+                    if abs(decision.get('news_score', 0)) > 0.1:
+                        motivation.append(f"news ({decision['news_score']:+.2f})")
+                    
+                    self.logger.info(f"📝 Motivazione: {', '.join(motivation) if motivation else 'algoritmo ensemble'}")
+                    self.logger.info(f"🎲 Confidenza finale: {decision['confidence']:.1%}")
+                    
                 else:
-                    self.logger.error(f"❌ TRADE FALLITO: {action} {shares} {symbol}")
+                    self.logger.error(f"❌ TRADE FALLITO: {action} {shares} {symbol} a €{price:.2f}")
+                    self.logger.error(f"💡 Possibili cause: fondi insufficienti, errore di mercato, posizione non valida")
                 
             except Exception as e:
                 self.logger.error(f"❌ Errore esecuzione trade: {e}")
+        
+        # Riepilogo finale
+        total_successful = self.stats['total_trades']
+        self.logger.info(f"📊 === RIEPILOGO SESSIONE ===")
+        self.logger.info(f"✅ Trades eseguiti: {total_successful}")
+        self.logger.info(f"📰 Basati su news: {self.stats['news_based_trades']}")
+        self.logger.info(f"🤖 Decisioni AI totali: {self.stats['ai_decisions']}")
+        
+        if total_successful > 0:
+            portfolio_value = self.portfolio.get_total_value()
+            initial_capital = self.config['trading']['initial_capital']
+            total_return = (portfolio_value - initial_capital) / initial_capital
+            self.logger.info(f"💰 Valore portafoglio: €{portfolio_value:.2f} ({total_return:+.2%})")
+        
     
     def _verify_trade_safety(self, decision: Dict) -> bool:
         """Verifica condizioni di sicurezza per il trade"""

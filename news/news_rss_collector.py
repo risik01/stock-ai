@@ -1,6 +1,29 @@
 #!/usr/bin/env python3
 """
-News RSS Feed Collector - Raccolta notizie finanziarie in tempo reale
+News RSS Feed Co             #        # Setup logging per RSS collector
+        os.makedirs('data', exist_ok=True)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('data/news_collector.log'),
+                logging.StreamHandler()
+            ]
+        )gging per RSS collector
+        os.makedirs('data', exist_ok=True)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('data/news_collector.log'),
+                logging.StreamHandler()
+            ]
+        )p logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('data/news_collector.log'),r - Raccolta notizie finanziarie in tempo reale
 Modulo per raccogliere e analizzare notizie dai principali RSS feeds finanziari
 """
 
@@ -41,12 +64,13 @@ class NewsRSSCollector:
         """Inizializza il collettore RSS"""
         self.config = self._load_config(config_path)
         
-        # Setup logging
+        # Setup logging per RSS collector
+        os.makedirs('data', exist_ok=True)
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler('../data/news_collector.log'),
+                logging.FileHandler('data/news_collector.log'),
                 logging.StreamHandler()
             ]
         )
@@ -84,7 +108,7 @@ class NewsRSSCollector:
         self.etag_cache = {}
         self.last_modified_cache = {}
         self.last_fetch_time = {}
-        self.cache_file = '../data/rss_cache.json'
+        self.cache_file = 'data/rss_cache.json'
         
         # Carica cache persistente
         self._load_cache()
@@ -487,7 +511,7 @@ class NewsRSSCollector:
     def export_news_data(self, filename: str = None) -> str:
         """Esporta dati notizie in JSON"""
         if filename is None:
-            filename = f"../data/news_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"data/news_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
         export_data = []
         for article in self.news_cache:

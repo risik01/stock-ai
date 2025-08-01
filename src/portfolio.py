@@ -107,6 +107,10 @@ class Portfolio:
         # Per ora, restituisce liquidità + valore stimato della posizione
         return self.cash + sum(pos * 100 for pos in self.positions.values())  # Segnaposto
     
+    def get_available_cash(self):
+        """Restituisce la liquidità disponibile"""
+        return self.cash
+    
     def get_positions(self):
         """Ottieni le posizioni correnti"""
         return self.positions.copy()

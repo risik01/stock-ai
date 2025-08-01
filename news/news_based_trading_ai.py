@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """
-News-Based Trading AI - Sistema di trading basato su analisi notizie
+News-Based Trading AI - S        # Setup logging per News AI
+        os.makedirs('data', exist_ok=True)
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('data/news_trading_ai.log'),
+                logging.StreamHandler()
+            ]
+        ) trading basato su analisi notizie
 Modulo principale che combina raccolta notizie, sentiment analysis e decisioni di trading
 """
 
@@ -15,8 +24,17 @@ import yfinance as yf
 from dataclasses import dataclass, asdict
 import numpy as np
 
-from news_rss_collector import NewsRSSCollector, NewsArticle
-from news_sentiment_analyzer import NewsSentimentAnalyzer, TradingSignal
+# Import con fallback
+try:
+    from news_rss_collector import NewsRSSCollector, NewsArticle
+    from news_sentiment_analyzer import NewsSentimentAnalyzer, TradingSignal
+except ImportError:
+    # Fallback per testing
+    print("⚠️ Import news locali non disponibili - modalità testing")
+    NewsRSSCollector = None
+    NewsArticle = None
+    NewsSentimentAnalyzer = None
+    TradingSignal = None
 
 @dataclass
 class NewsTradeExecution:
@@ -55,7 +73,7 @@ class NewsBasedTradingAI:
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler('../data/news_trading_ai.log'),
+                logging.FileHandler('data/news_trading_ai.log'),
                 logging.StreamHandler()
             ]
         )
@@ -619,7 +637,7 @@ class NewsBasedTradingAI:
         """Esporta report completo del trading"""
         
         if filename is None:
-            filename = f"../data/news_trading_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"data/news_trading_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
         report = {
             'timestamp': datetime.now().isoformat(),

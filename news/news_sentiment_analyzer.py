@@ -4,6 +4,7 @@ News Sentiment Analyzer - Analisi sentiment delle notizie finanziarie
 Modulo per analizzare sentiment e importanza delle notizie per decisioni di trading
 """
 
+import os
 import logging
 import re
 from datetime import datetime
@@ -27,7 +28,20 @@ except ImportError:
     VADER_AVAILABLE = False
     print("⚠️ VADER Sentiment non disponibile. Installa con: pip install vaderSentiment")
 
-from news_rss_collector import NewsArticle
+# Import locale con fallback
+try:
+    from news_rss_collector import NewsArticle
+except ImportError:
+    # Fallback: crea una classe NewsArticle semplice per compatibilità
+    @dataclass
+    class NewsArticle:
+        title: str
+        summary: str
+        content: str
+        published: datetime
+        url: str
+        source: str
+        symbols: List[str]
 
 @dataclass
 class SentimentScore:
@@ -83,11 +97,12 @@ class NewsSentimentAnalyzer:
     def __init__(self):
         """Inizializza l'analizzatore sentiment"""
         # Setup logging
+        os.makedirs("data", exist_ok=True)
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
-                logging.FileHandler('../data/sentiment_analyzer.log'),
+                logging.FileHandler('data/sentiment_analyzer.log'),
                 logging.StreamHandler()
             ]
         )
@@ -463,7 +478,7 @@ class NewsSentimentAnalyzer:
     def export_sentiment_analysis(self, analysis: Dict, filename: str = None) -> str:
         """Esporta analisi sentiment in JSON"""
         if filename is None:
-            filename = f"../data/sentiment_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"data/sentiment_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         
         # Converti datetime in string per JSON
         export_data = analysis.copy()
