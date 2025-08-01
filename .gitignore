@@ -160,3 +160,4 @@ data/update_summary.json
 # OS files
 .DS_Store
 Thumbs.db
+wiki_repo/
