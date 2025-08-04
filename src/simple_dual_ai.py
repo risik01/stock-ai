@@ -237,22 +237,29 @@ class SimpleTradingLogic:
         action = decision['action']
         price = decision['current_price']
         
-        if action == 'BUY' and self.portfolio_value >= price * 10:
-            # Acquista 10 azioni
-            self.positions[symbol] = self.positions.get(symbol, 0) + 10
-            self.portfolio_value -= price * 10
+        # Calcola quante azioni possiamo permetterci (max 10% del portfolio per trade)
+        max_investment = self.portfolio_value * 0.1
+        max_shares = max(1, int(max_investment / price))
+        
+        if action == 'BUY' and self.portfolio_value >= price * max_shares:
+            # Acquista azioni
+            self.positions[symbol] = self.positions.get(symbol, 0) + max_shares
+            cost = price * max_shares
+            self.portfolio_value -= cost
             self.trade_count += 1
             
-            logger.info(f"💰 ACQUISTO: 10 {symbol} a €{price:.2f} (Tot: {self.positions[symbol]})")
+            logger.info(f"💰 ACQUISTO: {max_shares} {symbol} a €{price:.2f} (Costo: €{cost:.2f}, Tot: {self.positions[symbol]})")
             return True
             
-        elif action == 'SELL' and self.positions.get(symbol, 0) >= 10:
-            # Vende 10 azioni
-            self.positions[symbol] -= 10
-            self.portfolio_value += price * 10
+        elif action == 'SELL' and self.positions.get(symbol, 0) > 0:
+            # Vende tutte le azioni disponibili del simbolo
+            shares_to_sell = self.positions[symbol]
+            revenue = price * shares_to_sell
+            self.positions[symbol] = 0
+            self.portfolio_value += revenue
             self.trade_count += 1
             
-            logger.info(f"💰 VENDITA: 10 {symbol} a €{price:.2f} (Tot: {self.positions[symbol]})")
+            logger.info(f"💰 VENDITA: {shares_to_sell} {symbol} a €{price:.2f} (Ricavo: €{revenue:.2f})")
             return True
         
         return False
@@ -317,7 +324,15 @@ async def price_ai_loop(memory, price_collector, trading_logic):
                 portfolio_value = trading_logic.get_portfolio_value(current_prices)
                 profit_pct = ((portfolio_value - 1000) / 1000) * 100
                 
-                logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count}")
+                # Mostra posizioni se ci sono trade
+                if trading_logic.trade_count > 0:
+                    positions_str = ", ".join([f"{sym}:{qty}" for sym, qty in trading_logic.positions.items() if qty > 0])
+                    if positions_str:
+                        logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count} | Posizioni: {positions_str}")
+                    else:
+                        logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count} | Cash: €{trading_logic.portfolio_value:.2f}")
+                else:
+                    logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count}")
                 
                 previous_prices = current_prices.copy()
             

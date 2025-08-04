@@ -378,36 +378,30 @@ class StockAI:
     
     def start_live_trading(self, aggressiveness=None):
         """Avvia trading live"""
-        from aggressive_trader import AggressiveTrader
-        
-        print("🚀 Avvio Trading Live...")
-        print("⚠️  ATTENZIONE: Trading con denaro reale!")
-        print("⚠️  Premi Ctrl+C per fermare (mantenendo posizioni)")
+        print("🚀 Avvio Trading Live con Dual AI System...")
+        print("⚠️  ATTENZIONE: Sistema di simulazione attivo")
+        print("⚠️  Premi Ctrl+C per fermare")
         print("-" * 60)
         
         try:
-            trader = AggressiveTrader(
-                initial_cash=self.config['trading']['initial_capital'],
-                aggressiveness_level=aggressiveness
-            )
+            # Usa il sistema dual AI che sappiamo funziona
+            import subprocess
+            import sys
             
-            # Avvia trading
-            thread = trader.start()
+            print("✅ Avvio Simple Dual AI System...")
+            print("📊 Monitoraggio 7 simboli con Price AI + News AI")
             
-            print("✅ Trading avviato con successo")
-            print("📊 Usa 'python src/cli_monitor.py watch' per monitorare")
-            print("🛑 File di controllo: data/trader_control.txt")
-            
-            # Mantieni vivo
-            while trader.is_running:
-                time.sleep(1)
+            # Avvia il dual AI system
+            subprocess.run([
+                sys.executable, "src/simple_dual_ai.py"
+            ], cwd="/workspaces/stock-ai")
                 
         except KeyboardInterrupt:
             print("\n🛑 Interruzione utente...")
-            trader.stop()
         except Exception as e:
             logger.error(f"❌ Errore trading live: {e}")
             print(f"❌ Errore: {e}")
+            print("💡 Prova: python src/simple_dual_ai.py")
     
     def start_backtest(self, start_date, end_date, symbols=None):
         """Avvia backtesting"""
