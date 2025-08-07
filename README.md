@@ -1,252 +1,328 @@
-# 🚀 Stock AI Trading System v4.0
+# 🚀 Stock AI Trading System v2.1
 
-![Stock AI](https://img.shields.io/badge/Stock%20AI-v4.0-blue)
-![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
-![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
+Un sistema di trading automatizzato basato su Intelligenza Artificiale che utilizza un'architettura dual-AI per analizzare prezzi e sentiment delle notizie in tempo reale.
 
-**Sistema di Trading Automatico con Intelligenza Artificiale Dual-Core**
+![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-stable-brightgreen.svg)
 
-Sistema di trading automatico avanzato che combina **Reinforcement Learning**, **Analisi Tecnica** e **Sentiment Analysis** per decisioni di trading intelligenti in tempo reale.
+## 🌟 Caratteristiche Principali
 
-## ✨ Caratteristiche Principali
+### 🧠 **Dual AI Architecture**
+- **Price AI**: Analisi tecnica dei prezzi ogni 10 secondi
+- **News AI**: Analisi sentiment delle notizie ogni 10 minuti
+- **Decisioni combinate**: Segnali di trading basati su entrambi gli AI
 
-### 🤖 **Dual AI System**
-- **Price AI**: Analisi tecnica real-time ogni 10 secondi
-- **News AI**: Sentiment analysis ogni 10 minuti
-- **Ensemble Decision**: Combinazione intelligente dei segnali
+### 📊 **Trading Modes**
+- **Trading Simulato**: Ambiente sicuro per test e apprendimento
+- **Trading Live**: Trading reale con dati di mercato in tempo reale
+- **Aggressive Trading**: Modalità ad alta frequenza per massimizzare opportunità
 
-### 📊 **Analisi Multi-Livello**
-- **Technical Analysis**: RSI, MACD, EMA, SMA, Bollinger Bands
-- **News Sentiment**: 10+ RSS feeds finanziari analizzati
-- **Risk Management**: Stop-loss automatico e position sizing
+### 🎯 **AI Training System**
+- **Background Learning**: Training continuo dell'AI durante il trading
+- **Knowledge Base**: Persistenza delle conoscenze apprese
+- **Pattern Recognition**: Riconoscimento automatico di pattern di mercato
 
-### 🎯 **Trading Intelligente**
-- **7 Simboli**: AAPL, GOOGL, MSFT, TSLA, AMZN, META, NVDA
-- **Risk Control**: Max 10% investimento per posizione
-- **Real-time**: Dati di mercato aggiornati continuamente
+### 📈 **Live Dashboard**
+- **Real-time Monitoring**: Visualizzazione live del portfolio
+- **Performance Charts**: Grafici di performance e P&L
+- **Trading Signals**: Visualizzazione segnali AI in tempo reale
+- **Auto-refresh**: Aggiornamento automatico ogni 3 secondi
 
-## 🚀 Installazione Rapida
+## 🛠️ Installazione
 
-### **Su Ubuntu/Linux**
+### Prerequisiti
+- Python 3.12+ 
+- Ubuntu 20.04+ (testato su Ubuntu 24.04.2 LTS)
+- Git
+
+### 1. Clone del Repository
 ```bash
-# Clona repository
 git clone https://github.com/risik01/stock-ai.git
 cd stock-ai
-
-# Setup automatico
-chmod +x setup_ubuntu.sh
-./setup_ubuntu.sh
-
-# Configura API keys
-nano .env
-# Inserisci: ALPHA_VANTAGE_API_KEY, FINNHUB_API_KEY, NEWS_API_KEY
 ```
 
-### **Avvio Sistema**
+### 2. Creazione Virtual Environment
 ```bash
-# Avvia trading automatico
-python src/simple_dual_ai.py
-
-# In background (raccomandato per produzione)
-nohup python src/simple_dual_ai.py > logs/trading.log 2>&1 &
-
-# Dashboard web
-python src/main.py --dashboard
-# Apri http://localhost:5000
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-## 🔧 Configurazione API
-
-### **API Keys Richieste** (gratis)
+### 3. Installazione Dipendenze
 ```bash
-# File .env
-ALPHA_VANTAGE_API_KEY=your_key_here        # https://www.alphavantage.co/
-FINNHUB_API_KEY=your_key_here              # https://finnhub.io/
-NEWS_API_KEY=your_key_here                 # https://newsapi.org/
+pip install -r requirements.txt
 ```
 
-### **Setup Automatico Dipendenze**
+### 4. Configurazione
+Il sistema è preconfigurato con settings ottimali. Le configurazioni si trovano in:
+- `config/settings.json` - Configurazioni generali
+- `config/trading_config.json` - Parametri di trading
+
+## 🚀 Utilizzo
+
+### Launcher Unificato
+Il sistema include un launcher unificato per tutti i comandi:
+
 ```bash
-# Il setup installa automaticamente:
-pip install yfinance pandas numpy requests textblob
-python -m textblob.download_corpora
+python launcher.py --help
 ```
 
-## 📈 Performance e Metriche
-
-### **Obiettivi di Performance**
-- 🎯 **ROI Target**: 3-8% mensile
-- 📉 **Max Drawdown**: < 10%
-- 📊 **Win Rate**: > 55%
-- ⚡ **Sharpe Ratio**: > 1.0
-
-### **Risk Management**
-- 💰 **Budget Iniziale**: €1000
-- 🛡️ **Max Posizione**: 10% del portfolio
-- 🚨 **Stop Loss**: Automatico
-- 📊 **Max Loss Giornaliero**: 5%
-
-## 🌐 Dashboard e Monitoring
-
-### **Web Dashboard**
+### 📊 **Trading Simulato** (Raccomandato per iniziare)
 ```bash
-python src/main.py --dashboard
-```
-- **Real-time Portfolio**: Valore attuale e P&L
-- **Trade History**: Storico operazioni
-- **AI Decisions**: Log decisioni AI
-- **News Feed**: Feed notizie analizzate
+# Trading simulato standard
+python launcher.py trade
 
-### **Monitoring da Terminale**
+# Trading aggressivo simulato
+python launcher.py trade --aggressive
+
+# Trading con simboli specifici
+python launcher.py trade --symbols AAPL TSLA GOOGL
+```
+
+### 💹 **Trading Live** (Dati reali)
 ```bash
-# Stato sistema
-python src/main.py --system-status
+# Trading live con dati reali
+python launcher.py trade --live
 
-# Portfolio status
-python src/main.py --portfolio status
-
-# Log real-time
-tail -f logs/trading_*.log
+# Trading live aggressivo
+python launcher.py trade --live --aggressive
 ```
 
-## 🔄 Modalità Operative
-
-### **1. Demo Mode (Sicuro)**
+### 🧠 **AI Training**
 ```bash
-# Trading simulato - NESSUN RISCHIO
-python src/simple_dual_ai.py --demo
+# Training AI in background (1 giorno)
+python launcher.py train
+
+# Training esteso (7 giorni)
+python launcher.py train --days 7
+
+# Training su simboli specifici
+python launcher.py train --symbols AAPL TSLA META
 ```
 
-### **2. Live Trading**
+### 📈 **Dashboard Live**
 ```bash
-# Trading reale - ATTENZIONE!
-python src/simple_dual_ai.py --live
+# Avvia dashboard web
+python launcher.py dashboard
 ```
+Poi apri http://localhost:8501 nel browser
 
-### **3. Backtesting**
+### 🔄 **Sistema Smart** (Training + Trading)
 ```bash
-# Test su dati storici
-python src/main.py --mode backtest --start-date 2024-01-01 --end-date 2024-12-31
+# Prima training poi trading automatico
+python launcher.py smart
+
+# Smart con modalità aggressiva
+python launcher.py smart --aggressive
 ```
 
-## 🤖 Architettura AI
-
-### **Dual AI Core**
-```
-┌─────────────────┐    ┌──────────────────┐
-│   Price AI      │    │    News AI       │
-│   (10s cycles)  │    │   (10min cycles) │
-│                 │    │                  │
-│ • Technical     │    │ • RSS Feeds      │
-│ • Momentum      │    │ • Sentiment      │
-│ • Patterns      │    │ • Impact Score   │
-└─────────────────┘    └──────────────────┘
-         │                       │
-         └───────┬───────────────┘
-                 │
-         ┌───────▼────────┐
-         │ Ensemble Logic │
-         │ • Score Fusion │
-         │ • Risk Check   │
-         │ • Execute      │
-         └────────────────┘
-```
-
-### **Decision Making Process**
-1. **Data Collection**: Prezzi real-time + News
-2. **Technical Analysis**: Indicatori calcolati
-3. **Sentiment Analysis**: Score da news
-4. **Score Fusion**: Combinazione intelligente
-5. **Risk Check**: Validazione limiti
-6. **Execution**: Trade se score > soglia
-
-## 📊 Esempio Output Live
-
-```
-2025-08-04 10:15:32 - INFO - 🚀 === AVVIO SISTEMA DUAL AI ===
-2025-08-04 10:15:33 - INFO - 🤖 === ANALISI AI PER 7 SIMBOLI ===
-2025-08-04 10:15:33 - INFO - 🧠 AAPL: €151.24 | Δ+1.85% | News:+0.125 | Score:+1.547 → BUY
-2025-08-04 10:15:33 - INFO - 🎯 SEGNALE TRADING: AAPL → BUY (score: 1.547)
-2025-08-04 10:15:33 - INFO - 💰 ACQUISTO: 6 AAPL a €151.24 (Costo: €907.44, Tot: 6)
-2025-08-04 10:15:34 - INFO - 📊 Portfolio: €1045.67 (+4.57%) | Trades: 1 | Posizioni: AAPL:6
-```
-
-## 🛡️ Sicurezza e Best Practices
-
-### **Protezioni Integrate**
-- ✅ **Emergency Stop**: Blocco automatico se loss > 10%
-- ✅ **Position Limits**: Max investimento per simbolo
-- ✅ **Rate Limiting**: Evita over-trading
-- ✅ **Error Handling**: Recovery automatico da errori
-
-### **Raccomandazioni Produzione**
+### 🧪 **Test del Sistema**
 ```bash
-# 1. Usa screen/tmux per sessioni persistenti
-screen -S trading
-python src/simple_dual_ai.py
-# Ctrl+A, D per detach
+# Test dati real-time
+python launcher.py test realtime
 
-# 2. Setup monitoring automatico
-crontab -e
-# 0 */6 * * * cd /path/to/stock-ai && python src/main.py --system-status
+# Test API
+python launcher.py test api
 
-# 3. Backup automatico
-# 0 0 * * * cd /path/to/stock-ai && tar -czf backup_$(date +%Y%m%d).tar.gz data/
+# Test dual AI
+python launcher.py test dual-ai
+
+# Test AI training
+python launcher.py test training
 ```
 
-## 📚 Documentazione Completa
+### 📋 **Stato Sistema**
+```bash
+# Verifica stato completo
+python launcher.py status
+```
 
-### **Wiki GitHub**
-- 📖 [Installation Guide](https://github.com/risik01/stock-ai/wiki/Installation-Guide)
-- 🚀 [Quick Start](https://github.com/risik01/stock-ai/wiki/Quick-Start)
-- 📊 [User Manual](https://github.com/risik01/stock-ai/wiki/User-Manual)
-- 🔧 [Configuration](https://github.com/risik01/stock-ai/wiki/Configuration-Guide)
+## 📊 Dashboard Features
 
-### **API Reference**
-- 🤖 [RL Agent Overview](https://github.com/risik01/stock-ai/wiki/RL-Agent-Overview)
-- 📰 [News Trading](https://github.com/risik01/stock-ai/wiki/News-Trading-Overview)
-- 🔌 [API Reference](https://github.com/risik01/stock-ai/wiki/API-Reference)
+### Metriche Principali
+- **Portfolio Value**: Valore totale con P&L
+- **Total Trades**: Numero di operazioni eseguite
+- **Open Positions**: Posizioni attualmente aperte
+- **Cash Available**: Liquidità disponibile
 
-## 🚨 Disclaimer
+### Visualizzazioni
+- **Posizioni Aperte**: Tabella con simboli e quantità
+- **Trades Recenti**: Cronologia delle ultime operazioni
+- **Prezzi e Segnali AI**: Prezzi attuali con segnali di trading
+- **Performance Chart**: Grafico P&L cumulativo nel tempo
 
-⚠️ **IMPORTANTE**: Questo sistema di trading automatico opera con capitale reale. Il trading comporta sempre rischi di perdite finanziarie. 
+### Controlli
+- **Auto-refresh**: Aggiornamento automatico (configurabile)
+- **Manual Refresh**: Aggiornamento manuale
+- **Debug Info**: Informazioni di sistema e debugging
 
-- ✅ **Inizia sempre in modalità demo**
-- ✅ **Monitora costantemente le performance**
-- ✅ **Non investire più di quanto puoi permetterti di perdere**
-- ✅ **Mantieni sempre controllo manuale del sistema**
+## 🔧 Configurazione Avanzata
 
-## 🤝 Contributing
+### Trading Parameters
+Modifica `config/trading_config.json`:
+```json
+{
+    "initial_balance": 1000.0,
+    "max_position_size": 0.1,
+    "risk_tolerance": 0.02,
+    "trading_symbols": ["AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "META", "NVDA", "NFLX"]
+}
+```
 
-Contributi benvenuti! Vedi [CONTRIBUTING.md](CONTRIBUTING.md) per guidelines.
+### AI Settings
+Modifica `config/settings.json`:
+```json
+{
+    "price_ai_interval": 10,
+    "news_ai_interval": 600,
+    "market_hours": {
+        "start": "09:30",
+        "end": "16:00"
+    }
+}
+```
+
+## 📁 Struttura del Progetto
+
+```
+stock-ai/
+├── 📊 dashboard/          # Dashboard web Streamlit
+│   └── live_dashboard.py  # Dashboard principale
+├── 📦 data/              # Dati e cache
+│   ├── *.log            # Log di trading
+│   ├── portfolio.json   # Stato portfolio
+│   └── *.pkl           # Modelli AI salvati
+├── ⚙️ config/            # Configurazioni
+│   ├── settings.json
+│   └── trading_config.json
+├── 🐍 src/              # Codice sorgente principale
+│   ├── main.py         # Entry point principale
+│   ├── dual_ai_system.py
+│   ├── realtime_data.py
+│   ├── ai_background_trainer.py
+│   └── ...
+├── 🧪 tests/            # Test del sistema
+├── 📝 logs/             # Log di sistema
+└── 🚀 launcher.py       # Launcher unificato
+```
+
+## 🔒 Sicurezza e Risk Management
+
+### Protezioni Integrate
+- **Stop Loss**: Protezione automatica dalle perdite
+- **Position Sizing**: Limitazione dimensioni posizioni
+- **Risk Tolerance**: Controllo tolleranza al rischio
+- **Simulazione First**: Test obbligatorio prima del live
+
+### Gestione Errori
+- **Graceful Shutdown**: Arresto sicuro con CTRL+C
+- **Error Recovery**: Recupero automatico da errori
+- **Data Persistence**: Salvataggio automatico dello stato
+- **Logging Completo**: Tracciamento di tutte le operazioni
+
+## 📈 Performance Monitoring
+
+### Metriche Disponibili
+- **P&L Real-time**: Profitti/perdite in tempo reale
+- **Win Rate**: Percentuale di operazioni vincenti
+- **Sharpe Ratio**: Rapporto rischio/rendimento
+- **Maximum Drawdown**: Massima perdita consecutiva
+
+### Log e Reporting
+- **Trading Log**: `data/dual_ai_simple.log`
+- **Performance History**: `data/performance_history.json`
+- **System Log**: `logs/system.log`
+
+## 🔄 Backup e Recovery
+
+### Backup Automatico
+Il sistema salva automaticamente:
+- Stato portfolio
+- Modelli AI addestrati
+- Configurazioni personalizzate
+- Cronologia performance
+
+### Recovery
+In caso di interruzione:
+```bash
+# Il sistema riprende automaticamente dall'ultimo stato salvato
+python launcher.py trade
+```
+
+## 🚨 Troubleshooting
+
+### Problemi Comuni
+
+#### Dashboard non mostra dati
+```bash
+# Verifica log di trading
+python launcher.py status
+
+# Riavvia dashboard
+python launcher.py dashboard
+```
+
+#### Errori API
+```bash
+# Test connessione API
+python launcher.py test api
+
+# Verifica configurazione di rete
+```
+
+#### Performance lente
+```bash
+# Pulisci cache
+rm -rf data/cache/
+rm -rf src/__pycache__/
+
+# Riavvia sistema
+python launcher.py trade
+```
+
+## 📞 Supporto
+
+### Log di Debug
+Per problemi, condividi:
+- `logs/system.log`
+- `data/dual_ai_simple.log`
+- Output di `python launcher.py status`
+
+### Issue Reporting
+Apri un issue su GitHub con:
+- Descrizione del problema
+- Steps per riprodurre
+- Log rilevanti
+- Sistema operativo e versione Python
+
+## 📋 Changelog
+
+### v2.1 (Current)
+- ✅ Dashboard live completamente funzionale
+- ✅ Sistema di training AI in background
+- ✅ Launcher unificato per tutti i comandi
+- ✅ Gestione graceful shutdown (CTRL+C)
+- ✅ Trading con dati real-time
+- ✅ Architettura dual-AI ottimizzata
+- ✅ Sistema di recovery e persistence migliorato
+
+### v2.0
+- 🔄 Dual AI architecture
+- 🔄 Real-time data integration
+- 🔄 Web dashboard introduction
 
 ## 📄 License
 
-MIT License - vedi [LICENSE](LICENSE) per dettagli.
+MIT License - Vedi [LICENSE](LICENSE) per dettagli.
+
+## 🤝 Contributing
+
+1. Fork del repository
+2. Crea feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit delle modifiche (`git commit -m 'Add AmazingFeature'`)
+4. Push al branch (`git push origin feature/AmazingFeature`)
+5. Apri Pull Request
 
 ---
 
-## 🎯 Quick Start Commands
-
-```bash
-# Setup completo (una volta)
-git clone https://github.com/risik01/stock-ai.git && cd stock-ai && ./setup_ubuntu.sh
-
-# Trading demo (sicuro)
-python src/simple_dual_ai.py --demo
-
-# Dashboard web
-python src/main.py --dashboard
-
-# Status sistema
-python src/main.py --system-status
-```
-
-**🚀 Happy Trading! 📈**
-
----
-
-![AI Trading](https://img.shields.io/badge/AI-Trading-brightgreen)
-![Real Time](https://img.shields.io/badge/Real%20Time-Analytics-blue)
-![Risk Management](https://img.shields.io/badge/Risk-Management-red)
+**⚠️ Disclaimer**: Questo software è fornito a scopo educativo. Il trading comporta rischi finanziari. Usa sempre la modalità simulata per test e formazione prima di procedere con trading reale.

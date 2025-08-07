@@ -14,11 +14,12 @@ import time
 import asyncio
 import threading
 import logging
+import signal
 from datetime import datetime
 from pathlib import Path
 
 # Configurazione logging
-log_dir = Path("../data")
+log_dir = Path("data")
 log_dir.mkdir(exist_ok=True)
 
 logging.basicConfig(
@@ -59,48 +60,68 @@ class SimpleMemory:
                 self.trades = self.trades[-50:]
 
 class FastPriceCollector:
-    """Raccoglie prezzi velocemente"""
+    """Raccoglie prezzi velocemente CON DATI REALI"""
     
     def __init__(self):
         self.symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'AMZN', 'META', 'NVDA']
-        # Usa il sistema esistente
+        # Importa il nuovo collector real-time
         sys.path.append('.')
+        try:
+            from realtime_data import RealTimeDataCollector
+            self.realtime_collector = RealTimeDataCollector()
+            logger.info("🔴 Real-Time Data Collector caricato")
+        except Exception as e:
+            logger.error(f"❌ Errore caricamento real-time collector: {e}")
+            self.realtime_collector = None
+        
+        # Fallback al sistema esistente
         try:
             import data_collector
             import json
-            with open('../config/production_settings.json') as f:
+            with open('config/production_settings.json') as f:
                 config = json.load(f)
             # Disabilita cache per dati freschi
             config['data']['cache_enabled'] = False
             self.collector = data_collector.DataCollector(config)
-            logger.info("✅ Data Collector caricato")
+            logger.info("✅ Fallback Data Collector caricato")
         except Exception as e:
-            logger.error(f"❌ Errore caricamento data collector: {e}")
+            logger.error(f"❌ Errore caricamento fallback collector: {e}")
             self.collector = None
     
     def get_current_prices(self):
-        """Ottiene prezzi correnti"""
+        """Ottiene prezzi correnti REALI"""
         prices = {}
         
-        if not self.collector:
-            # Prezzi simulati per testing
+        # USA PRIORITARIAMENTE IL COLLECTOR REAL-TIME
+        if self.realtime_collector:
+            try:
+                prices = self.realtime_collector.get_all_current_prices()
+                logger.debug(f"🔴 PREZZI REAL-TIME ottenuti per {len(prices)} simboli")
+                return prices
+            except Exception as e:
+                logger.warning(f"⚠️ Errore real-time collector: {e}, usando fallback")
+        
+        # Fallback al sistema esistente
+        if self.collector:
+            for symbol in self.symbols:
+                try:
+                    data = self.collector.get_stock_data(symbol)
+                    if data is not None and not data.empty:
+                        current_price = float(data.iloc[-1]['Close'])
+                        prices[symbol] = current_price
+                        logger.debug(f"✅ {symbol}: €{current_price:.2f}")
+                except Exception as e:
+                    logger.debug(f"⚠️ Errore {symbol}: {e}")
+        
+        # Ultimate fallback - prezzi simulati
+        if not prices:
             import random
-            base_prices = {'AAPL': 150, 'GOOGL': 2800, 'MSFT': 330, 'TSLA': 240, 'AMZN': 3300, 'META': 520, 'NVDA': 800}
+            base_prices = {'AAPL': 213.25, 'GOOGL': 196.09, 'MSFT': 524.94, 'TSLA': 319.91, 'AMZN': 222.31, 'META': 771.99, 'NVDA': 179.42}
             for symbol in self.symbols:
                 # Simula variazione ±2%
                 variation = random.uniform(-0.02, 0.02)
                 prices[symbol] = base_prices[symbol] * (1 + variation)
-            return prices
-        
-        for symbol in self.symbols:
-            try:
-                data = self.collector.get_stock_data(symbol)
-                if data is not None and not data.empty:
-                    current_price = float(data.iloc[-1]['Close'])
-                    prices[symbol] = current_price
-                    logger.debug(f"✅ {symbol}: €{current_price:.2f}")
-            except Exception as e:
-                logger.debug(f"⚠️ Errore {symbol}: {e}")
+            logger.warning("⚠️ Usando prezzi simulati - verifica connessione API")
         
         return prices
 
@@ -376,22 +397,188 @@ async def main():
     """Funzione principale"""
     logger.info("🚀 === AVVIO SISTEMA DUAL AI SEMPLIFICATO ===")
     
+    # Variabile per gestire shutdown graceful
+    shutdown_event = asyncio.Event()
+    
+    def signal_handler(signum, frame):
+        logger.info("🛑 Ricevuto segnale di interruzione (CTRL+C)")
+        logger.info("🔄 Arresto graceful del sistema...")
+        shutdown_event.set()
+    
+    # Registra signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     # Inizializza componenti
     memory = SimpleMemory()
     price_collector = FastPriceCollector()
     news_collector = SimpleNewsCollector()
     trading_logic = SimpleTradingLogic()
     
-    # Avvia i due loop in parallelo
+    # Task per i due AI loop
+    price_task = None
+    news_task = None
+    
     try:
-        await asyncio.gather(
-            price_ai_loop(memory, price_collector, trading_logic),
-            news_ai_loop(memory, news_collector)
+        # Crea task
+        price_task = asyncio.create_task(
+            price_ai_loop_with_shutdown(memory, price_collector, trading_logic, shutdown_event)
         )
-    except KeyboardInterrupt:
-        logger.info("🛑 Sistema fermato dall'utente")
+        news_task = asyncio.create_task(
+            news_ai_loop_with_shutdown(memory, news_collector, shutdown_event)
+        )
+        
+        # Attende fino a shutdown
+        await shutdown_event.wait()
+        
+        logger.info("💾 Salvando stato finale...")
+        
+        # Mostra stato finale
+        current_prices = price_collector.get_current_prices()
+        if current_prices:
+            portfolio_value = trading_logic.get_portfolio_value(current_prices)
+            profit_pct = ((portfolio_value - 1000) / 1000) * 100
+            
+            logger.info(f"📊 === STATO FINALE ===")
+            logger.info(f"💰 Portfolio finale: €{portfolio_value:.2f} ({profit_pct:+.2f}%)")
+            logger.info(f"🔢 Totale trades: {trading_logic.trade_count}")
+            logger.info(f"💵 Cash rimanente: €{trading_logic.portfolio_value:.2f}")
+            
+            if any(qty > 0 for qty in trading_logic.positions.values()):
+                logger.info("📈 Posizioni aperte:")
+                for symbol, qty in trading_logic.positions.items():
+                    if qty > 0:
+                        value = qty * current_prices.get(symbol, 0)
+                        logger.info(f"  {symbol}: {qty} azioni (€{value:.2f})")
+        
+        logger.info("✅ Sistema arrestato correttamente")
+        
     except Exception as e:
-        logger.error(f"❌ Errore sistema: {e}")
+        logger.error(f"❌ Errore durante arresto: {e}")
+    finally:
+        # Cancella task se ancora attivi
+        if price_task and not price_task.done():
+            price_task.cancel()
+        if news_task and not news_task.done():
+            news_task.cancel()
+        
+        logger.info("🏁 Cleanup completato")
+
+async def price_ai_loop_with_shutdown(memory, price_collector, trading_logic, shutdown_event):
+    """Loop Price AI con gestione shutdown"""
+    logger.info("🚀 Price AI avviata (10s cicli)")
+    previous_prices = {}
+    
+    while not shutdown_event.is_set():
+        try:
+            start_time = time.time()
+            
+            # Ottieni prezzi
+            current_prices = price_collector.get_current_prices()
+            
+            if current_prices:
+                memory.update_prices(current_prices)
+                
+                # Prendi decisioni per ogni simbolo
+                decisions = []
+                news_sentiment = memory.news_sentiment
+                
+                logger.info(f"🤖 === ANALISI AI PER {len(current_prices)} SIMBOLI ===")
+                
+                for symbol, price in current_prices.items():
+                    prev_price = previous_prices.get(symbol, price)
+                    
+                    decision = trading_logic.make_decision(
+                        symbol, price, prev_price, news_sentiment
+                    )
+                    
+                    # LOG DETTAGLIATO DELLE DECISIONI AI
+                    price_change_pct = decision['price_change'] * 100
+                    logger.info(f"🧠 {symbol}: €{price:.2f} | Δ{price_change_pct:+.2f}% | News:{news_sentiment:+.3f} | Score:{decision['score']:+.3f} → {decision['action']}")
+                    
+                    if decision['action'] != 'HOLD':
+                        decisions.append(decision)
+                        logger.info(f"🎯 SEGNALE TRADING: {symbol} → {decision['action']} (score: {decision['score']:.3f})")
+                
+                if not decisions:
+                    logger.info("📋 Nessun segnale di trading generato (tutti HOLD)")
+                else:
+                    logger.info(f"� {len(decisions)} SEGNALI ATTIVI per esecuzione")
+                
+                # Esegui trades
+                for decision in decisions:
+                    if trading_logic.execute_trade(decision):
+                        memory.add_trade(decision)
+                
+                # Portfolio update
+                portfolio_value = trading_logic.get_portfolio_value(current_prices)
+                profit_pct = ((portfolio_value - 1000) / 1000) * 100
+                
+                # Mostra posizioni se ci sono trade
+                if trading_logic.trade_count > 0:
+                    positions_str = ", ".join([f"{sym}:{qty}" for sym, qty in trading_logic.positions.items() if qty > 0])
+                    if positions_str:
+                        logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count} | Posizioni: {positions_str}")
+                    else:
+                        logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count} | Cash: €{trading_logic.portfolio_value:.2f}")
+                else:
+                    logger.info(f"📊 Portfolio: €{portfolio_value:.2f} ({profit_pct:+.2f}%) | Trades: {trading_logic.trade_count}")
+                
+                previous_prices = current_prices.copy()
+            
+            elapsed = time.time() - start_time
+            logger.debug(f"⏱️ Price AI ciclo: {elapsed:.2f}s")
+            
+            # Attende 10 secondi o fino a shutdown
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=10.0)
+                break  # Shutdown richiesto
+            except asyncio.TimeoutError:
+                pass  # Continua il loop
+            
+        except Exception as e:
+            logger.error(f"❌ Errore Price AI: {e}")
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=10.0)
+                break
+            except asyncio.TimeoutError:
+                pass
+
+async def news_ai_loop_with_shutdown(memory, news_collector, shutdown_event):
+    """Loop News AI con gestione shutdown"""
+    logger.info("📰 News AI avviata (10min cicli)")
+    
+    while not shutdown_event.is_set():
+        try:
+            start_time = time.time()
+            
+            # Raccoglie news
+            articles = news_collector.collect_news()
+            logger.info(f"📡 Raccolti {len(articles)} articoli")
+            
+            # Analizza sentiment
+            if articles:
+                sentiment = news_collector.analyze_sentiment(articles)
+                memory.update_news(sentiment, len(articles))
+            
+            elapsed = time.time() - start_time
+            logger.info(f"⏱️ News AI ciclo: {elapsed:.2f}s")
+            
+            # Attende 10 minuti o fino a shutdown (in chunk da 30s per responsività)
+            for _ in range(20):  # 20 x 30s = 600s = 10min
+                try:
+                    await asyncio.wait_for(shutdown_event.wait(), timeout=30.0)
+                    return  # Shutdown richiesto
+                except asyncio.TimeoutError:
+                    pass  # Continua
+            
+        except Exception as e:
+            logger.error(f"❌ Errore News AI: {e}")
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=30.0)
+                break
+            except asyncio.TimeoutError:
+                pass
 
 if __name__ == "__main__":
     asyncio.run(main())

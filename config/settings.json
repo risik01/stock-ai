@@ -1,15 +1,20 @@
 {
+  "system": {
+    "version": "2.1",
+    "environment": "production",
+    "logging_level": "INFO"
+  },
   "trading": {
-    "initial_capital": 10000,
-    "max_position_size": 0.2,
+    "initial_capital": 1000,
+    "max_position_size": 0.1,
     "stop_loss": 0.05,
     "take_profit": 0.1,
     "live_trading": {
       "enabled": true,
-      "check_interval": 300,
-      "market_hours_only": true,
-      "max_trades_per_day": 20,
-      "min_trade_interval": 60,
+      "check_interval": 10,
+      "market_hours_only": false,
+      "max_trades_per_day": 50,
+      "min_trade_interval": 5,
       "risk_per_trade": 0.02
     }
   },
